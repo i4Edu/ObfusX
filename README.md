@@ -19,35 +19,37 @@ ObfusX is a PHP source-protection toolkit (ionCube/SourceGuardian-style) that pr
 
 ```bash
 export OBFUSX_MASTER_KEY='your-long-secret'
-/home/runner/work/ObfusX/ObfusX/bin/obfusx encode \
-  --in=/home/runner/work/ObfusX/ObfusX/examples/plain.php \
-  --out=/home/runner/work/ObfusX/ObfusX/examples/plain.obx
+./bin/obfusx encode \
+  --in=./examples/plain.php \
+  --out=./examples/plain.obx
 
-OBFUSX_ALLOW_DEBUG=1 /home/runner/work/ObfusX/ObfusX/bin/obfusx run \
-  --file=/home/runner/work/ObfusX/ObfusX/examples/plain.obx
+OBFUSX_ALLOW_DEBUG=1 ./bin/obfusx run \
+  --file=./examples/plain.obx
 ```
 
 ## Licensing
 
 ```bash
 export OBFUSX_LICENSE_KEY='license-signing-secret'
-/home/runner/work/ObfusX/ObfusX/bin/obfusx make-license \
-  --out=/home/runner/work/ObfusX/ObfusX/examples/license.json \
+./bin/obfusx make-license \
+  --out=./examples/license.json \
   --domain=localhost \
   --ip=127.0.0.1 \
   --expires=2030-01-01T00:00:00Z \
-  --hw="$(/home/runner/work/ObfusX/ObfusX/bin/obfusx fingerprint)"
+  --hw="$(./bin/obfusx fingerprint)"
 ```
 
 Then pass `--license=/path/license.json` to the `run` command.
 
+For signed payload integrity verification, optionally set `OBFUSX_SIGNING_KEY` during both encode and run.
+
 ## Testing
 
 ```bash
-php /home/runner/work/ObfusX/ObfusX/tests/run.php
+php ./tests/run.php
 ```
 
 ## Docs
 
-- `/home/runner/work/ObfusX/ObfusX/docs/FAQ.md`
-- `/home/runner/work/ObfusX/ObfusX/docs/developer-guide.md`
+- `./docs/FAQ.md`
+- `./docs/developer-guide.md`

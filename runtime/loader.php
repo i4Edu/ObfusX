@@ -28,6 +28,7 @@ function obfusx_anti_debug(): void
 function obfusx_execute_payload(array $payload, ?string $licensePath = null): void
 {
     obfusx_anti_debug();
+    obfusx_validate_signature($payload);
 
     if ($licensePath !== null) {
         $licenseSigningKey = getenv('OBFUSX_LICENSE_KEY') ?: '';
@@ -58,6 +59,30 @@ function obfusx_execute_payload(array $payload, ?string $licensePath = null): vo
 
     $code = Crypto::decrypt($payload, $masterKey);
     eval($code);
+}
+
+function obfusx_validate_signature(array $payload): void
+{
+    if (!isset($payload['signature'])) {
+        return;
+    }
+
+    $signingKey = getenv('OBFUSX_SIGNING_KEY') ?: '';
+    if ($signingKey === '') {
+        throw new RuntimeException('OBFUSX_SIGNING_KEY is required for signed payloads.');
+    }
+
+    $message = implode('|', [
+        (string) ($payload['ciphertext'] ?? ''),
+        (string) ($payload['iv'] ?? ''),
+        (string) ($payload['tag'] ?? ''),
+        (string) ($payload['salt'] ?? ''),
+    ]);
+    $expected = hash_hmac('sha256', $message, $signingKey);
+
+    if (!hash_equals($expected, (string) $payload['signature'])) {
+        throw new RuntimeException('Payload signature verification failed.');
+    }
 }
 
 function obfusx_execute_file(string $encodedFile, ?string $licensePath = null): void

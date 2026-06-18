@@ -1,11 +1,13 @@
 {
     "alg": "AES-256-GCM",
-    "salt": "rYHAlvfCHdi2TEs+dbyRfw==",
-    "iv": "5o7Mu8U948TrpiDQ",
-    "tag": "RYquan6W9tbIghX3xTibGw==",
-    "ciphertext": "kdX5z4Zp\/ajQ87wkcJFIzXA8GQUs2iG1dEzC\/J+oc7jt7CBQ\/lFbV22KVobv15kXS\/HSkl4cHR5zes+szMC31DajOX\/UKIbetyuBFRDDZIwjWtzP0pYpN4iKIcptYsIRaKCz8SuHhBOEyjOVWDWb5EwiFKne+045j\/LQC2PrdTxxKeJ4nQw3OzWKVaZRdA96CLxd5lGqoIoVXknnyQK5qRBb",
+    "salt": "blCI73dLAVRxtslYbSLJOQ==",
+    "iv": "g8NUNklcVItiXnv3",
+    "tag": "g\/UXwPiyE4IFSoICyvvyjg==",
+    "ciphertext": "7JyTa4hqqwZ7JUfmajmLg\/8K+k5UXUfIUgNyif28xxW\/1XP9Kp2zKgjgmMqV1p7yBR4EG08V7CqEDb8jwgvXzDzWETiVCfKM8rsWfbdbLvQiBTVgvTsyvyuCXLPn+49Glryd9TJVU6sMzUJx608PgTPJ81YOneffvPXDPBgnAcG610Re1bkkUHP7YhswF57BKMV5vVFQ1Bkbps6CaiiUVI8r",
     "meta": {
-        "obfuscated_at": "2026-06-18T20:47:32+00:00",
+        "obfuscated_at": "2026-06-18T20:48:57+00:00",
         "identifier_count": 0
-    }
+    },
+    "signature": "80fa719586c82db035b1f1fed428e623843e7c1a4f0f94ea58540ee2940bc612",
+    "signed": true
 }

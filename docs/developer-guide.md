@@ -12,4 +12,5 @@ Use `OBFUSX_LICENSE_KEY` and `bin/obfusx make-license`.
 ## Runtime hardening hooks
 - Xdebug check (`OBFUSX_ALLOW_DEBUG=1` can bypass for local testing)
 - License enforcement before decryption
+- Optional payload HMAC verification via `OBFUSX_SIGNING_KEY`
 - AES-256-GCM decryption only in memory

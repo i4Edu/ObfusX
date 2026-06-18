@@ -24,12 +24,36 @@ final class Encoder
             'obfuscated_at' => gmdate('c'),
             'identifier_count' => count($obfuscated['map']),
         ];
+        $encrypted = self::addSignature($encrypted);
 
         $json = json_encode($encrypted, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR);
 
         if (file_put_contents($outputFile, $json) === false) {
             throw new \RuntimeException('Failed to write output file.');
         }
+    }
+
+    /**
+     * @param array<string,mixed> $payload
+     * @return array<string,mixed>
+     */
+    private static function addSignature(array $payload): array
+    {
+        $signingKey = getenv('OBFUSX_SIGNING_KEY') ?: '';
+        if ($signingKey === '') {
+            return $payload;
+        }
+
+        $message = implode('|', [
+            (string) ($payload['ciphertext'] ?? ''),
+            (string) ($payload['iv'] ?? ''),
+            (string) ($payload['tag'] ?? ''),
+            (string) ($payload['salt'] ?? ''),
+        ]);
+        $payload['signature'] = hash_hmac('sha256', $message, $signingKey);
+        $payload['signed'] = true;
+
+        return $payload;
     }
 
     private static function normalizeForRuntime(string $code): string
