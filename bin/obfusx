@@ -8,6 +8,7 @@ require_once __DIR__ . '/../runtime/loader.php';
 
 use ObfusX\Encoder;
 use ObfusX\LicenseManager;
+use ObfusX\Version;
 
 function parseArgs(array $argv): array
 {
@@ -23,15 +24,23 @@ function parseArgs(array $argv): array
 
 function usage(): void
 {
-    echo "ObfusX CLI\n";
+    echo 'ObfusX CLI v' . Version::current() . "\n";
     echo "  encode --in=/path/input.php --out=/path/output.obx\n";
     echo "  run --file=/path/output.obx [--license=/path/license.json]\n";
+    echo "  inspect --file=/path/output.obx\n";
     echo "  make-license --out=/path/license.json [--domain=example.com] [--ip=1.2.3.4] [--expires=2030-01-01T00:00:00Z] [--hw=<fingerprint>]\n";
     echo "  fingerprint\n";
+    echo "  version\n";
+    echo "  help\n";
 }
 
 $command = $argv[1] ?? null;
 $args = parseArgs(array_slice($argv, 2));
+
+if (isset($args['help'])) {
+    usage();
+    exit(0);
+}
 
 try {
     switch ($command) {
@@ -80,6 +89,23 @@ try {
 
         case 'fingerprint':
             echo LicenseManager::hardwareFingerprint() . PHP_EOL;
+            break;
+
+        case 'inspect':
+            $file = $args['file'] ?? null;
+            if (!$file) {
+                throw new RuntimeException('inspect requires --file.');
+            }
+            $info = Encoder::describeFile($file);
+            echo json_encode($info, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL;
+            break;
+
+        case 'version':
+            echo Version::current() . PHP_EOL;
+            break;
+
+        case 'help':
+            usage();
             break;
 
         default:

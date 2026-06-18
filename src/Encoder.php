@@ -34,6 +34,39 @@ final class Encoder
     }
 
     /**
+     * Return non-sensitive metadata describing an encoded file.
+     *
+     * The protected source is never decrypted: only the algorithm, signing
+     * status and recorded meta information are exposed.
+     *
+     * @return array<string,mixed>
+     */
+    public static function describeFile(string $encodedFile): array
+    {
+        if (!is_file($encodedFile)) {
+            throw new \RuntimeException('Encoded file does not exist.');
+        }
+
+        $json = file_get_contents($encodedFile);
+        if ($json === false) {
+            throw new \RuntimeException('Failed to read encoded file.');
+        }
+
+        $payload = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+        if (!is_array($payload)) {
+            throw new \RuntimeException('Invalid encoded file format.');
+        }
+
+        $meta = (isset($payload['meta']) && is_array($payload['meta'])) ? $payload['meta'] : [];
+
+        return [
+            'alg' => $payload['alg'] ?? 'unknown',
+            'signed' => isset($payload['signature']),
+            'meta' => $meta,
+        ];
+    }
+
+    /**
      * @param array<string,mixed> $payload
      * @return array<string,mixed>
      */
