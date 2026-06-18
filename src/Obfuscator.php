@@ -28,7 +28,9 @@ final class Obfuscator
      */
     public static function obfuscate(string $code): array
     {
-        $tokens = token_get_all("<?php\n" . $code);
+        $normalized = ltrim($code);
+        $tokenizedSource = str_starts_with($normalized, '<?') ? $code : "<?php\n" . $code;
+        $tokens = token_get_all($tokenizedSource);
         $out = [];
         $map = [];
 
