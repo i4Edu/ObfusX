@@ -185,10 +185,7 @@ function obfusx_include_decrypted_code(string $code): void
         throw new RuntimeException('Unable to create temporary runtime file.');
     }
 
-    $normalized = ltrim($code);
-    $wrapped = (str_starts_with($normalized, '<?') || str_contains($code, '<?'))
-        ? $code
-        : "<?php\n" . $code;
+    $wrapped = obfusx_has_php_tag($code) ? $code : "<?php\n" . $code;
     if (file_put_contents($tmpFile, $wrapped) === false) {
         @unlink($tmpFile);
         throw new RuntimeException('Unable to write temporary runtime file.');
@@ -199,6 +196,23 @@ function obfusx_include_decrypted_code(string $code): void
     } finally {
         @unlink($tmpFile);
     }
+}
+
+/**
+ * Reliably determine whether the source already opens a PHP block.
+ *
+ * Uses the tokenizer rather than substring matching so a literal "<?" inside a
+ * string or comment is not mistaken for an actual open tag.
+ */
+function obfusx_has_php_tag(string $code): bool
+{
+    foreach (token_get_all($code) as $token) {
+        if (is_array($token) && ($token[0] === T_OPEN_TAG || $token[0] === T_OPEN_TAG_WITH_ECHO)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function obfusx_execute_file(string $encodedFile, ?string $licensePath = null): void
