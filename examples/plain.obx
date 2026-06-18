@@ -1,0 +1,11 @@
+{
+    "alg": "AES-256-GCM",
+    "salt": "rYHAlvfCHdi2TEs+dbyRfw==",
+    "iv": "5o7Mu8U948TrpiDQ",
+    "tag": "RYquan6W9tbIghX3xTibGw==",
+    "ciphertext": "kdX5z4Zp\/ajQ87wkcJFIzXA8GQUs2iG1dEzC\/J+oc7jt7CBQ\/lFbV22KVobv15kXS\/HSkl4cHR5zes+szMC31DajOX\/UKIbetyuBFRDDZIwjWtzP0pYpN4iKIcptYsIRaKCz8SuHhBOEyjOVWDWb5EwiFKne+045j\/LQC2PrdTxxKeJ4nQw3OzWKVaZRdA96CLxd5lGqoIoVXknnyQK5qRBb",
+    "meta": {
+        "obfuscated_at": "2026-06-18T20:47:32+00:00",
+        "identifier_count": 0
+    }
+}
