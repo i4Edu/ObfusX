@@ -68,6 +68,11 @@ final class Encoder
             throw new \RuntimeException('Failed to normalize strict_types declaration.');
         }
 
+        $normalized = preg_replace('/\\?>\\s*$/', '', $normalized);
+        if (!is_string($normalized)) {
+            throw new \RuntimeException('Failed to normalize closing tag.');
+        }
+
         return $normalized;
     }
 }

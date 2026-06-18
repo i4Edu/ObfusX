@@ -22,6 +22,7 @@ final class LicenseManager
             'hardware_fingerprint' => $options['hardware_fingerprint'] ?? null,
             'issued_at' => gmdate('c'),
         ];
+        $payload = self::canonicalize($payload);
 
         $json = json_encode($payload, JSON_THROW_ON_ERROR);
         $sig = hash_hmac('sha256', $json, $signingKey);
@@ -34,13 +35,17 @@ final class LicenseManager
      */
     public static function validateFromString(string $licenseJson, array $context, string $signingKey): void
     {
+        if ($signingKey === '') {
+            throw new \RuntimeException('Signing key cannot be empty.');
+        }
+
         $license = json_decode($licenseJson, true, 512, JSON_THROW_ON_ERROR);
 
         if (!is_array($license) || !isset($license['payload'], $license['signature']) || !is_array($license['payload'])) {
             throw new \RuntimeException('Invalid license format.');
         }
 
-        $payload = $license['payload'];
+        $payload = self::canonicalize($license['payload']);
         $expected = hash_hmac('sha256', json_encode($payload, JSON_THROW_ON_ERROR), $signingKey);
         if (!hash_equals($expected, (string) $license['signature'])) {
             throw new \RuntimeException('Invalid license signature.');
@@ -64,5 +69,22 @@ final class LicenseManager
     public static function hardwareFingerprint(): string
     {
         return hash('sha256', php_uname('n') . '|' . PHP_OS_FAMILY . '|' . PHP_VERSION);
+    }
+
+    /**
+     * @param array<string,mixed> $value
+     * @return array<string,mixed>
+     */
+    private static function canonicalize(array $value): array
+    {
+        foreach ($value as $key => $item) {
+            if (is_array($item)) {
+                $value[$key] = self::canonicalize($item);
+            }
+        }
+
+        ksort($value);
+
+        return $value;
     }
 }

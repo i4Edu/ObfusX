@@ -58,16 +58,20 @@ function obfusx_execute_payload(array $payload, ?string $licensePath = null): vo
     }
 
     $code = Crypto::decrypt($payload, $masterKey);
-    eval($code);
+    obfusx_include_decrypted_code($code);
 }
 
 function obfusx_validate_signature(array $payload): void
 {
+    $signingKey = getenv('OBFUSX_SIGNING_KEY') ?: '';
+    if ($signingKey !== '' && !isset($payload['signature'])) {
+        throw new RuntimeException('Payload signature is required when OBFUSX_SIGNING_KEY is set.');
+    }
+
     if (!isset($payload['signature'])) {
         return;
     }
 
-    $signingKey = getenv('OBFUSX_SIGNING_KEY') ?: '';
     if ($signingKey === '') {
         throw new RuntimeException('OBFUSX_SIGNING_KEY is required for signed payloads.');
     }
@@ -82,6 +86,27 @@ function obfusx_validate_signature(array $payload): void
 
     if (!hash_equals($expected, (string) $payload['signature'])) {
         throw new RuntimeException('Payload signature verification failed.');
+    }
+}
+
+function obfusx_include_decrypted_code(string $code): void
+{
+    $tmpFile = tempnam(sys_get_temp_dir(), 'obfusx_exec_');
+    if ($tmpFile === false) {
+        throw new RuntimeException('Unable to create temporary runtime file.');
+    }
+
+    $normalized = ltrim($code);
+    $wrapped = str_starts_with($normalized, '<?') ? $code : "<?php\n" . $code;
+    if (file_put_contents($tmpFile, $wrapped) === false) {
+        @unlink($tmpFile);
+        throw new RuntimeException('Unable to write temporary runtime file.');
+    }
+
+    try {
+        include $tmpFile;
+    } finally {
+        @unlink($tmpFile);
     }
 }
 

@@ -28,22 +28,18 @@ final class Obfuscator
      */
     public static function obfuscate(string $code): array
     {
-        $tokens = token_get_all($code);
+        $tokens = token_get_all("<?php\n" . $code);
         $out = [];
         $map = [];
-        $pendingDeclaration = null;
 
-        foreach ($tokens as $index => $token) {
+        foreach ($tokens as $token) {
             if (!is_array($token)) {
                 $out[] = $token;
                 continue;
             }
 
             [$id, $text] = $token;
-
-            if ($id === T_FUNCTION || $id === T_CLASS) {
-                $pendingDeclaration = $id;
-                $out[] = $text;
+            if ($id === T_OPEN_TAG) {
                 continue;
             }
 
@@ -54,13 +50,6 @@ final class Obfuscator
                 } else {
                     $out[] = $text;
                 }
-                continue;
-            }
-
-            if ($id === T_STRING && $pendingDeclaration !== null) {
-                $map[$text] = $map[$text] ?? self::tokenName($pendingDeclaration === T_FUNCTION ? 'f_' : 'c_', $text);
-                $out[] = $map[$text];
-                $pendingDeclaration = null;
                 continue;
             }
 
