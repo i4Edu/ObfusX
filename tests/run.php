@@ -88,6 +88,17 @@ assertTrue($missingSignatureFailed, 'Missing signature should fail when OBFUSX_S
 
 putenv('OBFUSX_SIGNING_KEY');
 
+$describe = Encoder::describeFile($tmpOut);
+assertTrue(($describe['alg'] ?? null) === 'AES-256-GCM', 'describeFile should report algorithm');
+assertTrue(($describe['signed'] ?? null) === false, 'Unsigned payload should report signed=false');
+assertTrue(is_array($describe['meta'] ?? null), 'describeFile should expose meta array');
+assertTrue(!isset($describe['ciphertext']), 'describeFile must not expose ciphertext');
+
+$signedDescribe = Encoder::describeFile($signedOut);
+assertTrue(($signedDescribe['signed'] ?? null) === true, 'Signed payload should report signed=true');
+
+assertTrue(ObfusX\Version::current() !== '', 'Version must not be empty');
+
 @unlink($tmpIn);
 @unlink($tmpOut);
 @unlink($signedOut);

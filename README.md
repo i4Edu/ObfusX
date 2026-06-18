@@ -43,6 +43,18 @@ Then pass `--license=/path/license.json` to the `run` command.
 
 For signed payload integrity verification, optionally set `OBFUSX_SIGNING_KEY` during both encode and run.
 
+## Inspecting encoded files
+
+Print non-sensitive metadata (algorithm, signing status, recorded meta) of an
+encoded payload without decrypting the protected source:
+
+```bash
+./bin/obfusx inspect --file=./examples/plain.obx
+```
+
+Run `./bin/obfusx help` (or pass `--help`) to see all commands, and
+`./bin/obfusx version` to print the toolkit version.
+
 ## Testing
 
 ```bash
