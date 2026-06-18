@@ -1,0 +1,35 @@
+{
+    "name": "i4edu/obfusx",
+    "description": "ObfusX is a PHP source-protection toolkit providing encryption, obfuscation, runtime loading, and license checks.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "obfuscation",
+        "encryption",
+        "source-protection",
+        "licensing"
+    ],
+    "require": {
+        "php": ">=8.1",
+        "ext-openssl": "*",
+        "ext-json": "*"
+    },
+    "require-dev": {
+        "phpstan/phpstan": "^1.11"
+    },
+    "autoload": {
+        "psr-4": {
+            "ObfusX\\": "src/"
+        }
+    },
+    "bin": [
+        "bin/obfusx"
+    ],
+    "scripts": {
+        "test": "php tests/run.php",
+        "stan": "phpstan analyse"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

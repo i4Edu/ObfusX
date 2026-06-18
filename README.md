@@ -43,10 +43,29 @@ Then pass `--license=/path/license.json` to the `run` command.
 
 For signed payload integrity verification, optionally set `OBFUSX_SIGNING_KEY` during both encode and run.
 
+## Configuration
+
+ObfusX is configured through environment variables:
+
+| Variable | Used by | Purpose |
+| --- | --- | --- |
+| `OBFUSX_MASTER_KEY` | encode, run | Master secret used to derive the AES-256-GCM key. |
+| `OBFUSX_SIGNING_KEY` | encode, run | Optional HMAC key for payload tamper detection. |
+| `OBFUSX_LICENSE_KEY` | make-license, run | HMAC key for license signing/validation. |
+| `OBFUSX_KEY_INFO` | encode | HKDF info / key-rotation identifier (default `obfusx-runtime-key`); stored in the payload so the runtime derives the matching key. |
+| `OBFUSX_COMPRESS` | encode | Set to `1` to gzip-compress the payload before encryption. |
+| `OBFUSX_ANTIDEBUG_CHECKS` | run | Comma-separated anti-debug checks (`xdebug,debugger,phpdbg,trace`); use `none` to disable. Defaults to all. |
+| `OBFUSX_ALLOW_DEBUG` | run | Set to `1` to bypass all anti-debug checks (local testing). |
+
+The encoder accepts multi-block sources — files mixing inline HTML with one or
+more `<?php` tags are preserved and obfuscated. Files containing no PHP code at
+all are rejected with a clear error.
+
 ## Inspecting encoded files
 
-Print non-sensitive metadata (algorithm, signing status, recorded meta) of an
-encoded payload without decrypting the protected source:
+Print non-sensitive metadata (algorithm, key-rotation identifier, compression,
+signing status, recorded meta) of an encoded payload without decrypting the
+protected source:
 
 ```bash
 ./bin/obfusx inspect --file=./examples/plain.obx
@@ -61,7 +80,19 @@ Run `./bin/obfusx help` (or pass `--help`) to see all commands, and
 php ./tests/run.php
 ```
 
+Or, with Composer installed:
+
+```bash
+composer install
+composer test   # runs the test suite
+composer stan   # runs PHPStan static analysis
+```
+
+Continuous integration runs the suite and static analysis on PHP 8.1, 8.2,
+and 8.3 (see `.github/workflows/ci.yml`).
+
 ## Docs
 
 - `./docs/FAQ.md`
 - `./docs/developer-guide.md`
+- `./docs/threat-model.md`
