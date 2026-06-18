@@ -1,0 +1,13 @@
+{
+    "alg": "AES-256-GCM",
+    "salt": "blCI73dLAVRxtslYbSLJOQ==",
+    "iv": "g8NUNklcVItiXnv3",
+    "tag": "g\/UXwPiyE4IFSoICyvvyjg==",
+    "ciphertext": "7JyTa4hqqwZ7JUfmajmLg\/8K+k5UXUfIUgNyif28xxW\/1XP9Kp2zKgjgmMqV1p7yBR4EG08V7CqEDb8jwgvXzDzWETiVCfKM8rsWfbdbLvQiBTVgvTsyvyuCXLPn+49Glryd9TJVU6sMzUJx608PgTPJ81YOneffvPXDPBgnAcG610Re1bkkUHP7YhswF57BKMV5vVFQ1Bkbps6CaiiUVI8r",
+    "meta": {
+        "obfuscated_at": "2026-06-18T20:48:57+00:00",
+        "identifier_count": 0
+    },
+    "signature": "80fa719586c82db035b1f1fed428e623843e7c1a4f0f94ea58540ee2940bc612",
+    "signed": true
+}

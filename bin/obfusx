@@ -1,0 +1,92 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/../src/bootstrap.php';
+require_once __DIR__ . '/../runtime/loader.php';
+
+use ObfusX\Encoder;
+use ObfusX\LicenseManager;
+
+function parseArgs(array $argv): array
+{
+    $args = [];
+    foreach ($argv as $arg) {
+        if (str_starts_with($arg, '--')) {
+            $parts = explode('=', substr($arg, 2), 2);
+            $args[$parts[0]] = $parts[1] ?? '1';
+        }
+    }
+    return $args;
+}
+
+function usage(): void
+{
+    echo "ObfusX CLI\n";
+    echo "  encode --in=/path/input.php --out=/path/output.obx\n";
+    echo "  run --file=/path/output.obx [--license=/path/license.json]\n";
+    echo "  make-license --out=/path/license.json [--domain=example.com] [--ip=1.2.3.4] [--expires=2030-01-01T00:00:00Z] [--hw=<fingerprint>]\n";
+    echo "  fingerprint\n";
+}
+
+$command = $argv[1] ?? null;
+$args = parseArgs(array_slice($argv, 2));
+
+try {
+    switch ($command) {
+        case 'encode':
+            $in = $args['in'] ?? null;
+            $out = $args['out'] ?? null;
+            $key = getenv('OBFUSX_MASTER_KEY') ?: '';
+            if (!$in || !$out || $key === '') {
+                throw new RuntimeException('encode requires --in, --out and OBFUSX_MASTER_KEY.');
+            }
+            Encoder::encodeFile($in, $out, $key);
+            echo "Encoded: {$out}\n";
+            break;
+
+        case 'run':
+            $file = $args['file'] ?? null;
+            if (!$file) {
+                throw new RuntimeException('run requires --file.');
+            }
+            obfusx_execute_file($file, $args['license'] ?? null);
+            break;
+
+        case 'make-license':
+            $out = $args['out'] ?? null;
+            $signingKey = getenv('OBFUSX_LICENSE_KEY') ?: '';
+            if (!$out || $signingKey === '') {
+                throw new RuntimeException('make-license requires --out and OBFUSX_LICENSE_KEY.');
+            }
+
+            $license = LicenseManager::create(
+                [
+                    'domain' => $args['domain'] ?? null,
+                    'ip' => $args['ip'] ?? null,
+                    'expires_at' => $args['expires'] ?? null,
+                    'hardware_fingerprint' => $args['hw'] ?? null,
+                ],
+                $signingKey
+            );
+
+            if (file_put_contents($out, $license) === false) {
+                throw new RuntimeException('Unable to write license file.');
+            }
+
+            echo "License created: {$out}\n";
+            break;
+
+        case 'fingerprint':
+            echo LicenseManager::hardwareFingerprint() . PHP_EOL;
+            break;
+
+        default:
+            usage();
+            exit($command === null ? 0 : 1);
+    }
+} catch (Throwable $e) {
+    fwrite(STDERR, 'Error: ' . $e->getMessage() . PHP_EOL);
+    exit(1);
+}
