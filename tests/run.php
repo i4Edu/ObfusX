@@ -47,6 +47,7 @@ assertTrue(is_file($tmpOut), 'Encoded file was not created');
 $encodedPayload = json_decode((string) file_get_contents($tmpOut), true, 512, JSON_THROW_ON_ERROR);
 assertTrue(is_array($encodedPayload), 'Encoded payload decode failed');
 $decodedSource = Crypto::decrypt($encodedPayload, $masterKey);
+assertTrue($decodedSource !== '', 'Decoded source should not be empty');
 assertTrue(
     str_contains($decodedSource, 'Protected by ObfusX (ionCube/SourceGuardian-style)'),
     'Obfuscated source should include ionCube/SourceGuardian-style notice'

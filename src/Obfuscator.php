@@ -34,7 +34,7 @@ final class Obfuscator
         $out = [];
         $map = [];
         $inPhp = false;
-        $noticeInjected = false;
+        $noticeAdded = false;
 
         foreach ($tokens as $token) {
             if (!is_array($token)) {
@@ -47,9 +47,9 @@ final class Obfuscator
             if ($id === T_OPEN_TAG || $id === T_OPEN_TAG_WITH_ECHO) {
                 $inPhp = true;
                 $out[] = $text;
-                if (!$noticeInjected) {
+                if (!$noticeAdded) {
                     $out[] = self::SOURCE_NOTICE . "\n";
-                    $noticeInjected = true;
+                    $noticeAdded = true;
                 }
                 continue;
             }
