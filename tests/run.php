@@ -44,6 +44,13 @@ $composerLock = __DIR__ . '/../composer.lock';
 file_put_contents($tmpIn, "<?php\n\n\$v = 'hello';\necho \$v;\n");
 Encoder::encodeFile($tmpIn, $tmpOut, $masterKey);
 assertTrue(is_file($tmpOut), 'Encoded file was not created');
+$encodedPayload = json_decode((string) file_get_contents($tmpOut), true, 512, JSON_THROW_ON_ERROR);
+assertTrue(is_array($encodedPayload), 'Encoded payload decode failed');
+$decodedSource = Crypto::decrypt($encodedPayload, $masterKey);
+assertTrue(
+    str_contains($decodedSource, 'Protected by ObfusX (ionCube/SourceGuardian-style)'),
+    'Obfuscated source should include ionCube/SourceGuardian-style notice'
+);
 
 putenv('OBFUSX_MASTER_KEY=' . $masterKey);
 putenv('OBFUSX_ALLOW_DEBUG=1');

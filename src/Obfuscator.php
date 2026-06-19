@@ -6,6 +6,8 @@ namespace ObfusX;
 
 final class Obfuscator
 {
+    private const SOURCE_NOTICE = '/* Protected by ObfusX (ionCube/SourceGuardian-style) */';
+
     private const RESERVED_VARS = [
         '$GLOBALS' => true,
         '$_SERVER' => true,
@@ -32,6 +34,7 @@ final class Obfuscator
         $out = [];
         $map = [];
         $inPhp = false;
+        $noticeInjected = false;
 
         foreach ($tokens as $token) {
             if (!is_array($token)) {
@@ -44,6 +47,10 @@ final class Obfuscator
             if ($id === T_OPEN_TAG || $id === T_OPEN_TAG_WITH_ECHO) {
                 $inPhp = true;
                 $out[] = $text;
+                if (!$noticeInjected) {
+                    $out[] = self::SOURCE_NOTICE . "\n";
+                    $noticeInjected = true;
+                }
                 continue;
             }
 
