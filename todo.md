@@ -22,8 +22,8 @@ A prioritized roadmap of improvements for the ObfusX PHP source-protection toolk
 - [x] Add a CI workflow that runs the test suite on supported PHP versions.
 - [x] Add static analysis (PHPStan/Psalm) configuration.
 - [x] Add a repository `.gitignore` for generated payloads and local tooling.
-- [ ] Choose and publish an explicit project license.
-- [ ] Add a release changelog / upgrade notes document.
+- [x] Choose and publish an explicit project license.
+- [x] Add a release changelog / upgrade notes document.
 
 ## Phase 4 — Hardening
 - [x] Expand anti-debug checks and make them configurable.

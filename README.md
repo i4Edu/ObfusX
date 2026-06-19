@@ -114,3 +114,7 @@ and 8.3 (see `.github/workflows/ci.yml`).
 - `./docs/FAQ.md`
 - `./docs/developer-guide.md`
 - `./docs/threat-model.md`
+
+## License
+
+ObfusX is released under the [MIT License](LICENSE).
