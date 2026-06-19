@@ -44,6 +44,18 @@ $composerLock = __DIR__ . '/../composer.lock';
 file_put_contents($tmpIn, "<?php\n\n\$v = 'hello';\necho \$v;\n");
 Encoder::encodeFile($tmpIn, $tmpOut, $masterKey);
 assertTrue(is_file($tmpOut), 'Encoded file was not created');
+$encodedPayload = json_decode((string) file_get_contents($tmpOut), true, 512, JSON_THROW_ON_ERROR);
+assertTrue(is_array($encodedPayload), 'Encoded payload decode failed');
+try {
+    $decodedSource = Crypto::decrypt($encodedPayload, $masterKey);
+} catch (Throwable $e) {
+    throw new RuntimeException('Encoded payload should decrypt successfully.', 0, $e);
+}
+assertTrue($decodedSource !== '', 'Decoded source should not be empty');
+assertTrue(
+    str_contains($decodedSource, 'Protected by ObfusX'),
+    'Obfuscated source should include protection notice'
+);
 
 putenv('OBFUSX_MASTER_KEY=' . $masterKey);
 putenv('OBFUSX_ALLOW_DEBUG=1');
@@ -212,6 +224,15 @@ assertTrue(
 assertTrue(ObfusX\Version::current() !== '', 'Version must not be empty');
 assertTrue(is_file(__DIR__ . '/../composer.json'), 'Composer metadata should exist');
 assertTrue(is_file($composerLock), 'Composer lockfile should exist after dependency installation');
+
+$aboutOutput = shell_exec(PHP_BINARY . ' ' . escapeshellarg(__DIR__ . '/../bin/obfusx') . ' about');
+assertTrue(is_string($aboutOutput), 'about command should produce output');
+assertTrue(str_contains($aboutOutput, 'ObfusX v' . ObfusX\Version::current()), 'about command should include version');
+assertTrue(str_contains($aboutOutput, 'ionCube/SourceGuardian'), 'about command should mention ionCube/SourceGuardian style');
+
+$helpOutput = shell_exec(PHP_BINARY . ' ' . escapeshellarg(__DIR__ . '/../bin/obfusx') . ' help');
+assertTrue(is_string($helpOutput), 'help command should produce output');
+assertTrue(str_contains($helpOutput, 'about'), 'help output should include about command');
 
 file_put_contents($tmpMixedIn, <<<'PHP'
 <section>
