@@ -40,12 +40,12 @@ A prioritized roadmap of improvements for the ObfusX PHP source-protection toolk
 - [x] Verify and document Windows (WSL / native PHP) compatibility.
 
 ## Phase 6 — Advanced obfuscation
-- [ ] Control-flow flattening (switch-based dispatcher) for protected code blocks.
-- [ ] String-array encoding — hoist all string literals into an encoded lookup
+- [x] Control-flow flattening (switch-based dispatcher) for protected code blocks.
+- [x] String-array encoding — hoist all string literals into an encoded lookup
       array resolved at runtime.
-- [ ] Dead-code injection / junk-instruction insertion to thwart static analysis.
-- [ ] Verify full compatibility with PHP 8.2 readonly classes and backed enums.
-- [ ] Verify full compatibility with PHP 8.3 typed class constants and `json_validate`.
+- [x] Dead-code injection / junk-instruction insertion to thwart static analysis.
+- [x] Verify full compatibility with PHP 8.2 readonly classes and backed enums.
+- [x] Verify full compatibility with PHP 8.3 typed class constants and `json_validate`.
 
 ## Phase 7 — Multi-file & enterprise
 - [ ] Add an `encode-dir` command for batch encoding an entire directory tree,

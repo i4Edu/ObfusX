@@ -27,6 +27,19 @@ final class Encoder
 
         $obfuscated = Obfuscator::obfuscate($code);
         $source = $obfuscated['code'];
+        $meta = [
+            'obfuscated_at' => gmdate('c'),
+            'identifier_count' => count($obfuscated['map']),
+        ];
+        if (($obfuscated['features']['strarray'] ?? false) === true) {
+            $meta['strarray'] = true;
+        }
+
+        $flattenedSource = Obfuscator::flattenControlFlow($source);
+        if ($flattenedSource !== $source) {
+            $source = $flattenedSource;
+            $meta['flatten'] = true;
+        }
 
         $compress = self::compressionEnabled();
         if ($compress) {
@@ -41,10 +54,7 @@ final class Encoder
         if ($compress) {
             $encrypted['compression'] = 'gzip';
         }
-        $encrypted['meta'] = [
-            'obfuscated_at' => gmdate('c'),
-            'identifier_count' => count($obfuscated['map']),
-        ];
+        $encrypted['meta'] = $meta;
         $encrypted = self::addSignature($encrypted);
 
         $json = json_encode($encrypted, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR);

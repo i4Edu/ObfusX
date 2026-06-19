@@ -16,6 +16,11 @@ function assertTrue(bool $condition, string $message): void
     }
 }
 
+function setEnvVar(string $name, ?string $value): void
+{
+    putenv($value === null ? $name : $name . '=' . $value);
+}
+
 $masterKey = 'test_master_key_32_bytes_value__';
 $payload = Crypto::encrypt('<?php echo "ok";', $masterKey);
 $plain = Crypto::decrypt($payload, $masterKey);
@@ -40,6 +45,10 @@ $tmpOut = sys_get_temp_dir() . '/' . $tmpPrefix . '_out.obx';
 $tmpMixedIn = sys_get_temp_dir() . '/' . $tmpPrefix . '_mixed.php';
 $tmpMixedOut = sys_get_temp_dir() . '/' . $tmpPrefix . '_mixed.obx';
 $tmpInvalidIn = sys_get_temp_dir() . '/' . $tmpPrefix . '_invalid.txt';
+$tmpAdvancedIn = sys_get_temp_dir() . '/' . $tmpPrefix . '_advanced.php';
+$tmpAdvancedOut = sys_get_temp_dir() . '/' . $tmpPrefix . '_advanced.obx';
+$tmpCompatIn = sys_get_temp_dir() . '/' . $tmpPrefix . '_compat.php';
+$tmpCompatOut = sys_get_temp_dir() . '/' . $tmpPrefix . '_compat.obx';
 $composerLock = __DIR__ . '/../composer.lock';
 file_put_contents($tmpIn, "<?php\n\n\$v = 'hello';\necho \$v;\n");
 Encoder::encodeFile($tmpIn, $tmpOut, $masterKey);
@@ -284,11 +293,78 @@ if (extension_loaded('xdebug')) {
 putenv('OBFUSX_ANTIDEBUG_CHECKS');
 putenv('OBFUSX_ALLOW_DEBUG=' . ($savedAllowDebug === false ? '' : $savedAllowDebug));
 
+// Phase 6: optional string-array encoding, control-flow flattening, and junk injection.
+$advancedFeatureEnv = [
+    'OBFUSX_STRARRAY' => getenv('OBFUSX_STRARRAY'),
+    'OBFUSX_FLATTEN' => getenv('OBFUSX_FLATTEN'),
+    'OBFUSX_JUNK' => getenv('OBFUSX_JUNK'),
+];
+file_put_contents($tmpAdvancedIn, <<<'PHP'
+<?php
+$greeting = 'hello';
+$subject = 'world';
+echo $greeting . ' ' . $subject;
+PHP);
+setEnvVar('OBFUSX_STRARRAY', '1');
+setEnvVar('OBFUSX_FLATTEN', '1');
+setEnvVar('OBFUSX_JUNK', '1');
+Encoder::encodeFile($tmpAdvancedIn, $tmpAdvancedOut, $masterKey);
+foreach ($advancedFeatureEnv as $name => $value) {
+    setEnvVar($name, $value === false ? null : (string) $value);
+}
+$advancedDescribe = Encoder::describeFile($tmpAdvancedOut);
+assertTrue(($advancedDescribe['meta']['strarray'] ?? null) === true, 'Advanced encode should record strarray metadata');
+assertTrue(($advancedDescribe['meta']['flatten'] ?? null) === true, 'Advanced encode should record flatten metadata');
+$advancedPayload = json_decode((string) file_get_contents($tmpAdvancedOut), true, 512, JSON_THROW_ON_ERROR);
+assertTrue(is_array($advancedPayload), 'Advanced payload decode failed');
+$advancedSource = Crypto::decrypt($advancedPayload, $masterKey);
+assertTrue(str_contains($advancedSource, '$__obfx_sa = array_map(\'base64_decode\''), 'String-array declaration should be hoisted to the top of the PHP block');
+assertTrue(!str_contains($advancedSource, 'obfusx_s('), 'String-array mode should replace per-call obfusx_s() wrappers');
+assertTrue(str_contains($advancedSource, 'while (true) {') && str_contains($advancedSource, 'switch ($__obfx_st_'), 'Flattened source should contain the dispatcher loop');
+assertTrue(str_contains($advancedSource, 'sha1(uniqid('), 'Junk mode should inject dead code blocks');
+ob_start();
+obfusx_execute_file($tmpAdvancedOut);
+$advancedOutput = trim((string) ob_get_clean());
+assertTrue($advancedOutput === 'hello world', 'Advanced obfuscation runtime execution failed');
+
+// Phase 6: PHP 8.2/8.3 syntax compatibility (readonly, enums, typed constants).
+file_put_contents($tmpCompatIn, <<<'PHP'
+<?php
+readonly class ReadonlyValue
+{
+    public function __construct(public string $value)
+    {
+    }
+}
+
+enum DeliveryState: string
+{
+    case READY = 'ready';
+}
+
+final class TypedConstantBag
+{
+    public const string LABEL = 'typed';
+}
+
+new ReadonlyValue(DeliveryState::READY->value);
+echo DeliveryState::READY->value . '|' . TypedConstantBag::LABEL;
+PHP);
+Encoder::encodeFile($tmpCompatIn, $tmpCompatOut, $masterKey);
+ob_start();
+obfusx_execute_file($tmpCompatOut);
+$compatOutput = trim((string) ob_get_clean());
+assertTrue($compatOutput === 'ready|typed', 'PHP 8.2/8.3 compatibility execution failed: ' . $compatOutput);
+
 @unlink($tmpIn);
 @unlink($tmpOut);
 @unlink($tmpMixedIn);
 @unlink($tmpMixedOut);
 @unlink($tmpInvalidIn);
+@unlink($tmpAdvancedIn);
+@unlink($tmpAdvancedOut);
+@unlink($tmpCompatIn);
+@unlink($tmpCompatOut);
 @unlink($signedOut);
 @unlink($tamperedOut);
 @unlink($unsignedOut);
