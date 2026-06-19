@@ -11,6 +11,20 @@ ObfusX uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.5.0] — 2026-06-19
+
+### Added
+- `encode-dir` CLI command for recursively encoding PHP trees into mirrored `.obx` outputs while copying non-PHP assets as-is.
+- `ObfusX\DirectoryEncoder` with optional checksum-cache support for incremental multi-file builds.
+- `.obxignore` parsing for fnmatch-based path exclusions during batch encoding.
+- White-label branding metadata via `OBFUSX_BRANDING`, exposed through `Encoder::describeFile()`.
+
+### Changed
+- `runtime/loader.php` now tolerates and discards branding metadata keys in encoded payloads.
+- `ObfusX\Version::VERSION` bumped to `0.5.0`.
+
+---
+
 ## [0.4.0] — 2026-06-19
 
 ### Added
@@ -122,7 +136,8 @@ This is the first public release; no migration from a previous version is requir
 | `OBFUSX_ANTIDEBUG_CHECKS` | Comma-separated checks (`xdebug,debugger,phpdbg,trace`) or `none`. |
 | `OBFUSX_ALLOW_DEBUG` | Set to `1` to bypass anti-debug checks (local testing only). |
 
-[Unreleased]: https://github.com/i4Edu/ObfusX/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/i4Edu/ObfusX/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/i4Edu/ObfusX/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/i4Edu/ObfusX/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/i4Edu/ObfusX/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/i4Edu/ObfusX/compare/v0.1.0...v0.2.0

@@ -48,13 +48,13 @@ A prioritized roadmap of improvements for the ObfusX PHP source-protection toolk
 - [x] Verify full compatibility with PHP 8.3 typed class constants and `json_validate`.
 
 ## Phase 7 — Multi-file & enterprise
-- [ ] Add an `encode-dir` command for batch encoding an entire directory tree,
+- [x] Add an `encode-dir` command for batch encoding an entire directory tree,
       preserving structure and skipping non-PHP assets.
-- [ ] Incremental re-encoding: only re-process files whose source has changed
+- [x] Incremental re-encoding: only re-process files whose source has changed
       since the last run (checksum cache).
-- [ ] White-label / rebranding support: configurable loader header and branding
+- [x] White-label / rebranding support: configurable loader header and branding
       string injected into encoded output.
-- [ ] `.obxignore` file support to exclude paths from batch encoding.
+- [x] `.obxignore` file support to exclude paths from batch encoding.
 
 ## Phase 8 — Remote licensing
 - [ ] Remote license validation endpoint: loader optionally POSTs a signed

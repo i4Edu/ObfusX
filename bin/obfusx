@@ -6,6 +6,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../src/bootstrap.php';
 require_once __DIR__ . '/../runtime/loader.php';
 
+use ObfusX\DirectoryEncoder;
 use ObfusX\Encoder;
 use ObfusX\LicenseManager;
 use ObfusX\Version;
@@ -26,6 +27,7 @@ function usage(): void
 {
     echo 'ObfusX CLI v' . Version::current() . "\n";
     echo "  encode --in=/path/input.php --out=/path/output.obx\n";
+    echo "  encode-dir --in=/path/to/src --out=/path/to/dist [--cache=/path/cache.json]\n";
     echo "  run --file=/path/output.obx [--license=/path/license.json]\n";
     echo "  inspect --file=/path/output.obx\n";
     echo "  make-license --out=/path/license.json [--domain=example.com] [--ip=1.2.3.4] [--expires=2030-01-01T00:00:00Z] [--hw=<fingerprint>]\n";
@@ -57,10 +59,13 @@ function about(): void
     echo "║  • HKDF key derivation with rotation support        ║\n";
     echo "║  • Optional gzip compression before encryption      ║\n";
     echo "║  • Optional HMAC payload tamper detection           ║\n";
+    echo "║  • Directory-tree batch encoding + skip cache      ║\n";
+    echo "║  • White-label branding metadata in payloads       ║\n";
     echo "╠══════════════════════════════════════════════════════╣\n";
     echo "║  Commands                                            ║\n";
-    echo "║  encode · run · inspect · make-license              ║\n";
-    echo "║  fingerprint · version · about · help               ║\n";
+    echo "║  encode · encode-dir · run · inspect                ║\n";
+    echo "║  make-license · fingerprint · version               ║\n";
+    echo "║  about · help                                       ║\n";
     echo "╚══════════════════════════════════════════════════════╝\n";
 }
 
@@ -83,6 +88,38 @@ try {
             }
             Encoder::encodeFile($in, $out, $key);
             echo "Encoded: {$out}\n";
+            break;
+
+        case 'encode-dir':
+            $in = $args['in'] ?? null;
+            $out = $args['out'] ?? null;
+            $cacheFile = $args['cache'] ?? null;
+            $key = getenv('OBFUSX_MASTER_KEY') ?: '';
+            if (!$in || !$out || $key === '') {
+                throw new RuntimeException('encode-dir requires --in, --out and OBFUSX_MASTER_KEY.');
+            }
+            if ($cacheFile === '1') {
+                throw new RuntimeException('encode-dir --cache requires a file path.');
+            }
+
+            $previousCache = getenv('OBFUSX_CACHE_FILE');
+            if (is_string($cacheFile) && $cacheFile !== '') {
+                putenv('OBFUSX_CACHE_FILE=' . $cacheFile);
+            } else {
+                putenv('OBFUSX_CACHE_FILE');
+                $cacheFile = null;
+            }
+
+            try {
+                $summary = DirectoryEncoder::encode($in, $out, $key, DirectoryEncoder::loadIgnorePatterns($in));
+            } finally {
+                putenv($previousCache === false ? 'OBFUSX_CACHE_FILE' : 'OBFUSX_CACHE_FILE=' . $previousCache);
+            }
+
+            echo 'Encoded ' . $summary['encoded'] . ' files, copied ' . $summary['copied'] . " files.\n";
+            if ($cacheFile !== null) {
+                echo 'Skipped ' . ($summary['skipped'] ?? 0) . " unchanged files.\n";
+            }
             break;
 
         case 'run':

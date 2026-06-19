@@ -57,6 +57,11 @@ final class Encoder
         $encrypted['meta'] = $meta;
         $encrypted = self::addSignature($encrypted);
 
+        $branding = getenv('OBFUSX_BRANDING') ?: '';
+        if ($branding !== '') {
+            $encrypted['branding'] = $branding;
+        }
+
         $json = json_encode($encrypted, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR);
 
         if (file_put_contents($outputFile, $json) === false) {
@@ -96,6 +101,7 @@ final class Encoder
             'info' => $payload['info'] ?? Crypto::DEFAULT_KEY_INFO,
             'compression' => $payload['compression'] ?? 'none',
             'signed' => isset($payload['signature']),
+            'branding' => isset($payload['branding']) && is_string($payload['branding']) ? $payload['branding'] : '',
             'meta' => $meta,
         ];
     }

@@ -91,6 +91,11 @@ function obfusx_anti_debug_checks(): array
 function obfusx_execute_payload(array $payload, ?string $licensePath = null, ?string $encodedFile = null): void
 {
     obfusx_anti_debug();
+
+    $branding = $payload['branding'] ?? null;
+    unset($payload['branding']);
+    unset($branding);
+
     obfusx_validate_signature($payload);
 
     if ($licensePath !== null) {
