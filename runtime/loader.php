@@ -96,9 +96,7 @@ function obfusx_include_decrypted_code(string $code): void
         throw new RuntimeException('Unable to create temporary runtime file.');
     }
 
-    $normalized = ltrim($code);
-    $wrapped = str_starts_with($normalized, '<?') ? $code : "<?php\n" . $code;
-    if (file_put_contents($tmpFile, $wrapped) === false) {
+    if (file_put_contents($tmpFile, $code) === false) {
         @unlink($tmpFile);
         throw new RuntimeException('Unable to write temporary runtime file.');
     }

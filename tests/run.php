@@ -37,6 +37,10 @@ LicenseManager::validateFromString($license, [
 $tmpPrefix = 'obfusx_test_' . getmypid() . '_' . str_replace('.', '', uniqid('', true));
 $tmpIn = sys_get_temp_dir() . '/' . $tmpPrefix . '_in.php';
 $tmpOut = sys_get_temp_dir() . '/' . $tmpPrefix . '_out.obx';
+$tmpMixedIn = sys_get_temp_dir() . '/' . $tmpPrefix . '_mixed.php';
+$tmpMixedOut = sys_get_temp_dir() . '/' . $tmpPrefix . '_mixed.obx';
+$tmpInvalidIn = sys_get_temp_dir() . '/' . $tmpPrefix . '_invalid.txt';
+$composerLock = __DIR__ . '/../composer.lock';
 file_put_contents($tmpIn, "<?php\n\n\$v = 'hello';\necho \$v;\n");
 Encoder::encodeFile($tmpIn, $tmpOut, $masterKey);
 assertTrue(is_file($tmpOut), 'Encoded file was not created');
@@ -98,9 +102,39 @@ $signedDescribe = Encoder::describeFile($signedOut);
 assertTrue(($signedDescribe['signed'] ?? null) === true, 'Signed payload should report signed=true');
 
 assertTrue(ObfusX\Version::current() !== '', 'Version must not be empty');
+assertTrue(is_file(__DIR__ . '/../composer.json'), 'Composer metadata should exist');
+assertTrue(is_file($composerLock), 'Composer lockfile should exist after dependency installation');
+
+file_put_contents($tmpMixedIn, <<<'PHP'
+<section>
+<?php
+$message = 'hello';
+echo strtoupper($message);
+?>
+<footer>
+<?php echo 'done'; ?>
+</footer>
+PHP);
+Encoder::encodeFile($tmpMixedIn, $tmpMixedOut, $masterKey);
+ob_start();
+obfusx_execute_file($tmpMixedOut);
+$mixedOutput = trim(preg_replace('/\s+/', ' ', (string) ob_get_clean()) ?? '');
+assertTrue($mixedOutput === '<section> HELLO<footer> done</footer>', 'Mixed PHP/HTML source should execute correctly');
+
+file_put_contents($tmpInvalidIn, "plain text only\n");
+$invalidFailed = false;
+try {
+    Encoder::encodeFile($tmpInvalidIn, $tmpOut, $masterKey);
+} catch (RuntimeException $e) {
+    $invalidFailed = str_contains($e->getMessage(), 'contain PHP code');
+}
+assertTrue($invalidFailed, 'Non-PHP input should fail with a clear validation error');
 
 @unlink($tmpIn);
 @unlink($tmpOut);
+@unlink($tmpMixedIn);
+@unlink($tmpMixedOut);
+@unlink($tmpInvalidIn);
 @unlink($signedOut);
 @unlink($tamperedOut);
 @unlink($unsignedOut);

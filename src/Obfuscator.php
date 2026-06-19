@@ -28,11 +28,10 @@ final class Obfuscator
      */
     public static function obfuscate(string $code): array
     {
-        $normalized = ltrim($code);
-        $tokenizedSource = str_starts_with($normalized, '<?') ? $code : "<?php\n" . $code;
-        $tokens = token_get_all($tokenizedSource);
+        $tokens = token_get_all($code);
         $out = [];
         $map = [];
+        $insidePhp = false;
 
         foreach ($tokens as $token) {
             if (!is_array($token)) {
@@ -41,7 +40,15 @@ final class Obfuscator
             }
 
             [$id, $text] = $token;
-            if ($id === T_OPEN_TAG) {
+            if ($id === T_OPEN_TAG || $id === T_OPEN_TAG_WITH_ECHO) {
+                $insidePhp = true;
+                $out[] = $text;
+                continue;
+            }
+
+            if ($id === T_CLOSE_TAG) {
+                $insidePhp = false;
+                $out[] = $text;
                 continue;
             }
 
@@ -67,7 +74,9 @@ final class Obfuscator
             $out[] = $text;
         }
 
-        $dummy = "\nif ((strlen(__FILE__) ^ strlen(__FILE__)) !== 0) { echo 'never'; }\n";
+        $dummy = $insidePhp
+            ? "\nif ((strlen(__FILE__) ^ strlen(__FILE__)) !== 0) { echo 'never'; }\n"
+            : "<?php\nif ((strlen(__FILE__) ^ strlen(__FILE__)) !== 0) { echo 'never'; }\n?>";
 
         return [
             'code' => implode('', $out) . $dummy,
@@ -94,7 +103,6 @@ final class Obfuscator
             return str_replace(["\\'", "\\\\"], ["'", "\\"], $body);
         }
 
-        $decoded = stripcslashes($body);
-        return is_string($decoded) ? $decoded : null;
+        return stripcslashes($body);
     }
 }

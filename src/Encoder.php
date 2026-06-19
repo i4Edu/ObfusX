@@ -17,8 +17,9 @@ final class Encoder
             throw new \RuntimeException('Failed to read input file.');
         }
 
-        $normalized = self::normalizeForRuntime($code);
-        $obfuscated = Obfuscator::obfuscate($normalized);
+        self::assertEncodablePhpSource($code);
+
+        $obfuscated = Obfuscator::obfuscate($code);
         $encrypted = Crypto::encrypt($obfuscated['code'], $masterKey);
         $encrypted['meta'] = [
             'obfuscated_at' => gmdate('c'),
@@ -89,23 +90,41 @@ final class Encoder
         return $payload;
     }
 
-    private static function normalizeForRuntime(string $code): string
+    private static function assertEncodablePhpSource(string $code): void
     {
-        $normalized = preg_replace('/^<\\?(php)?/i', '', ltrim($code));
-        if (!is_string($normalized)) {
-            throw new \RuntimeException('Failed to normalize source.');
+        try {
+            $tokens = token_get_all($code, TOKEN_PARSE);
+        } catch (\ParseError $e) {
+            throw new \RuntimeException('Input file must contain valid PHP code.', 0, $e);
         }
 
-        $normalized = preg_replace('/^\\s*declare\\s*\\(\\s*strict_types\\s*=\\s*1\\s*\\)\\s*;\\s*/i', '', $normalized);
-        if (!is_string($normalized)) {
-            throw new \RuntimeException('Failed to normalize strict_types declaration.');
+        $hasOpenTag = false;
+        $hasExecutablePhpToken = false;
+
+        foreach ($tokens as $token) {
+            if (!is_array($token)) {
+                continue;
+            }
+
+            [$id] = $token;
+
+            if ($id === T_OPEN_TAG || $id === T_OPEN_TAG_WITH_ECHO) {
+                $hasOpenTag = true;
+                if ($id === T_OPEN_TAG_WITH_ECHO) {
+                    $hasExecutablePhpToken = true;
+                }
+                continue;
+            }
+
+            if (in_array($id, [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT, T_INLINE_HTML, T_CLOSE_TAG], true)) {
+                continue;
+            }
+
+            $hasExecutablePhpToken = true;
         }
 
-        $normalized = preg_replace('/\\?>\\s*$/', '', $normalized);
-        if (!is_string($normalized)) {
-            throw new \RuntimeException('Failed to normalize closing tag.');
+        if (!$hasOpenTag || !$hasExecutablePhpToken) {
+            throw new \RuntimeException('Input file must contain PHP code enclosed in PHP tags.');
         }
-
-        return $normalized;
     }
 }
