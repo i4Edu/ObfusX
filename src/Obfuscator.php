@@ -123,7 +123,6 @@ final class Obfuscator
             return str_replace(["\\'", "\\\\"], ["'", "\\"], $body);
         }
 
-        $decoded = stripcslashes($body);
-        return is_string($decoded) ? $decoded : null;
+        return stripcslashes($body);
     }
 }
