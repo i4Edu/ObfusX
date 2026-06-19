@@ -46,7 +46,11 @@ Encoder::encodeFile($tmpIn, $tmpOut, $masterKey);
 assertTrue(is_file($tmpOut), 'Encoded file was not created');
 $encodedPayload = json_decode((string) file_get_contents($tmpOut), true, 512, JSON_THROW_ON_ERROR);
 assertTrue(is_array($encodedPayload), 'Encoded payload decode failed');
-$decodedSource = Crypto::decrypt($encodedPayload, $masterKey);
+try {
+    $decodedSource = Crypto::decrypt($encodedPayload, $masterKey);
+} catch (Throwable $e) {
+    throw new RuntimeException('Encoded payload should decrypt successfully.', 0, $e);
+}
 assertTrue($decodedSource !== '', 'Decoded source should not be empty');
 assertTrue(
     str_contains($decodedSource, 'Protected by ObfusX (ionCube/SourceGuardian-style)'),

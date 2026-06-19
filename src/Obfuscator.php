@@ -48,7 +48,7 @@ final class Obfuscator
                 $inPhp = true;
                 $out[] = $text;
                 if (!$noticeAdded) {
-                    $out[] = self::SOURCE_NOTICE . "\n";
+                    $out[] = self::SOURCE_NOTICE . PHP_EOL;
                     $noticeAdded = true;
                 }
                 continue;
