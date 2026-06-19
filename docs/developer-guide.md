@@ -26,6 +26,12 @@ The encoder preserves inline HTML and multiple `<?php` blocks, obfuscating the
 PHP segments while leaving template markup intact. Sources without any PHP tag
 are rejected with a clear error.
 
+## Laravel entrypoints
+Encode Laravel front controllers such as `public/index.php` or `artisan`
+directly. At runtime, ObfusX rewrites `__DIR__` and `__FILE__` inside the
+decrypted source so relative includes still resolve from the encoded `.obx`
+file instead of the temporary runtime file.
+
 ## Local validation
 - `composer test`
 - `composer stan`

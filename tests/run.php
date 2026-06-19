@@ -161,6 +161,54 @@ obfusx_execute_file($compressedOut);
 $compressedOutput = trim((string) ob_get_clean());
 assertTrue($compressedOutput === 'hello', 'Compressed runtime execution failed');
 
+// Laravel-style entrypoints should resolve paths relative to the encoded .obx file.
+$laravelRoot = sys_get_temp_dir() . '/' . $tmpPrefix . '_laravel';
+$laravelPublic = $laravelRoot . '/public';
+$laravelBootstrap = $laravelRoot . '/bootstrap';
+$laravelVendor = $laravelRoot . '/vendor';
+assertTrue(@mkdir($laravelPublic, 0777, true) || is_dir($laravelPublic), 'Failed to create Laravel public directory');
+assertTrue(@mkdir($laravelBootstrap, 0777, true) || is_dir($laravelBootstrap), 'Failed to create Laravel bootstrap directory');
+assertTrue(@mkdir($laravelVendor, 0777, true) || is_dir($laravelVendor), 'Failed to create Laravel vendor directory');
+
+$laravelAutoload = $laravelVendor . '/autoload.php';
+$laravelApp = $laravelBootstrap . '/app.php';
+$laravelIndex = $laravelPublic . '/index.php';
+$laravelOut = $laravelPublic . '/index.obx';
+
+file_put_contents($laravelAutoload, <<<'PHP'
+<?php
+function laravel_test_message(): string
+{
+    return 'laravel';
+}
+PHP);
+
+file_put_contents($laravelApp, <<<'PHP'
+<?php
+return new class {
+    public function handleRequest(string $message): void
+    {
+        echo $message . '|app=' . dirname(__DIR__);
+    }
+};
+PHP);
+
+file_put_contents($laravelIndex, <<<'PHP'
+<?php
+require __DIR__ . '/../vendor/autoload.php';
+$app = require __DIR__ . '/../bootstrap/app.php';
+$app->handleRequest(laravel_test_message() . '|public=' . __DIR__ . '|file=' . basename(__FILE__));
+PHP);
+
+Encoder::encodeFile($laravelIndex, $laravelOut, $masterKey);
+ob_start();
+obfusx_execute_file($laravelOut);
+$laravelOutput = trim((string) ob_get_clean());
+assertTrue(
+    $laravelOutput === 'laravel|public=' . $laravelPublic . '|file=index.obx|app=' . $laravelRoot,
+    'Laravel-style entrypoint should preserve encoded file paths: ' . $laravelOutput
+);
+
 assertTrue(ObfusX\Version::current() !== '', 'Version must not be empty');
 assertTrue(is_file(__DIR__ . '/../composer.json'), 'Composer metadata should exist');
 assertTrue(is_file($composerLock), 'Composer lockfile should exist after dependency installation');
@@ -229,5 +277,13 @@ putenv('OBFUSX_ALLOW_DEBUG=' . ($savedAllowDebug === false ? '' : $savedAllowDeb
 @unlink($rotatedOut);
 @unlink($badInfoOut);
 @unlink($compressedOut);
+@unlink($laravelOut);
+@unlink($laravelIndex);
+@unlink($laravelApp);
+@unlink($laravelAutoload);
+@rmdir($laravelPublic);
+@rmdir($laravelBootstrap);
+@rmdir($laravelVendor);
+@rmdir($laravelRoot);
 
 echo "All tests passed\n";
