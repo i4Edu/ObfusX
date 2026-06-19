@@ -1,2 +1,6 @@
 /vendor/
+/.phpstan/
+/.phpunit.cache/
+/examples/*.obx
+/examples/license.json
 composer.phar

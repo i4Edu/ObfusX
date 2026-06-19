@@ -14,10 +14,12 @@ ObfusX is a PHP source-protection toolkit (ionCube/SourceGuardian-style) that pr
 
 - PHP 8.1+
 - OpenSSL extension
+- Composer 2 (for local tooling)
 
 ## Quick start
 
 ```bash
+composer install
 export OBFUSX_MASTER_KEY='your-long-secret'
 ./bin/obfusx encode \
   --in=./examples/plain.php \
@@ -74,10 +76,21 @@ protected source:
 Run `./bin/obfusx help` (or pass `--help`) to see all commands, and
 `./bin/obfusx version` to print the toolkit version.
 
+## Source compatibility
+
+- Input files must contain PHP tags.
+- Mixed HTML/PHP sources and multiple PHP blocks are supported.
+
 ## Testing
 
 ```bash
-php ./tests/run.php
+composer test
+```
+
+## Static analysis
+
+```bash
+composer stan
 ```
 
 Or, with Composer installed:

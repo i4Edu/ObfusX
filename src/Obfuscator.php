@@ -28,9 +28,7 @@ final class Obfuscator
      */
     public static function obfuscate(string $code): array
     {
-        $normalized = ltrim($code);
-        $tokenizedSource = str_starts_with($normalized, '<?') ? $code : "<?php\n" . $code;
-        $tokens = token_get_all($tokenizedSource);
+        $tokens = token_get_all($code);
         $out = [];
         $map = [];
         $inPhp = false;
@@ -125,7 +123,6 @@ final class Obfuscator
             return str_replace(["\\'", "\\\\"], ["'", "\\"], $body);
         }
 
-        $decoded = stripcslashes($body);
-        return is_string($decoded) ? $decoded : null;
+        return stripcslashes($body);
     }
 }

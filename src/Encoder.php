@@ -19,9 +19,11 @@ final class Encoder
 
         if (!self::containsPhp($code)) {
             throw new \RuntimeException(
-                'Input does not contain any PHP code (no "<?php" / "<?=" tag found): ' . $inputFile
+                'Input file must contain PHP code; input does not contain any PHP tags (no "<?php" / "<?=" tag found): ' . $inputFile
             );
         }
+
+        self::assertEncodablePhpSource($code);
 
         $obfuscated = Obfuscator::obfuscate($code);
         $source = $obfuscated['code'];
@@ -130,5 +132,31 @@ final class Encoder
         $payload['signed'] = true;
 
         return $payload;
+    }
+
+    private static function assertEncodablePhpSource(string $code): void
+    {
+        try {
+            $tokens = token_get_all($code, TOKEN_PARSE);
+        } catch (\ParseError $e) {
+            throw new \RuntimeException('Input file must contain valid PHP code.', 0, $e);
+        }
+
+        foreach ($tokens as $token) {
+            if (!is_array($token)) {
+                continue;
+            }
+
+            $id = $token[0];
+            if ($id === T_OPEN_TAG_WITH_ECHO) {
+                return;
+            }
+
+            if (!in_array($id, [T_OPEN_TAG, T_WHITESPACE, T_COMMENT, T_DOC_COMMENT, T_INLINE_HTML, T_CLOSE_TAG], true)) {
+                return;
+            }
+        }
+
+        throw new \RuntimeException('Input file must contain PHP code enclosed in PHP tags.');
     }
 }
