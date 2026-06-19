@@ -63,6 +63,11 @@ The encoder accepts multi-block sources — files mixing inline HTML with one or
 more `<?php` tags are preserved and obfuscated. Files containing no PHP code at
 all are rejected with a clear error.
 
+Laravel entrypoints are supported natively: when you encode files such as
+`public/index.php` or `artisan`, runtime execution preserves `__DIR__` and
+`__FILE__` relative to the `.obx` file so Laravel's relative bootstrap paths
+continue to work.
+
 ## Inspecting encoded files
 
 Print non-sensitive metadata (algorithm, key-rotation identifier, compression,

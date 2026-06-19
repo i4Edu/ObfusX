@@ -88,7 +88,7 @@ function obfusx_anti_debug_checks(): array
     return $checks;
 }
 
-function obfusx_execute_payload(array $payload, ?string $licensePath = null): void
+function obfusx_execute_payload(array $payload, ?string $licensePath = null, ?string $encodedFile = null): void
 {
     obfusx_anti_debug();
     obfusx_validate_signature($payload);
@@ -122,6 +122,7 @@ function obfusx_execute_payload(array $payload, ?string $licensePath = null): vo
 
     $code = Crypto::decrypt($payload, $masterKey);
     $code = obfusx_decompress($payload, $code);
+    $code = obfusx_bind_magic_paths($code, $encodedFile);
     obfusx_include_decrypted_code($code);
 }
 
@@ -178,6 +179,42 @@ function obfusx_validate_signature(array $payload): void
     }
 }
 
+function obfusx_bind_magic_paths(string $code, ?string $encodedFile): string
+{
+    if ($encodedFile === null || !obfusx_has_php_tag($code)) {
+        return $code;
+    }
+
+    $resolvedFile = realpath($encodedFile);
+    $runtimeFile = $resolvedFile !== false ? $resolvedFile : $encodedFile;
+    $runtimeDir = dirname($runtimeFile);
+    $tokens = token_get_all($code);
+    $out = [];
+
+    foreach ($tokens as $token) {
+        if (!is_array($token)) {
+            $out[] = $token;
+            continue;
+        }
+
+        [$id, $text] = $token;
+
+        if ($id === T_DIR) {
+            $out[] = var_export($runtimeDir, true);
+            continue;
+        }
+
+        if ($id === T_FILE) {
+            $out[] = var_export($runtimeFile, true);
+            continue;
+        }
+
+        $out[] = $text;
+    }
+
+    return implode('', $out);
+}
+
 function obfusx_include_decrypted_code(string $code): void
 {
     $tmpFile = tempnam(sys_get_temp_dir(), 'obfusx_exec_');
@@ -231,5 +268,5 @@ function obfusx_execute_file(string $encodedFile, ?string $licensePath = null): 
         throw new RuntimeException('Invalid encoded file format.');
     }
 
-    obfusx_execute_payload($payload, $licensePath);
+    obfusx_execute_payload($payload, $licensePath, $encodedFile);
 }
