@@ -6,7 +6,7 @@ namespace ObfusX;
 
 final class Obfuscator
 {
-    private const SOURCE_NOTICE = '/* Protected by ObfusX (ionCube/SourceGuardian-style) */';
+    private const SOURCE_NOTICE = '/* Protected by ObfusX */';
 
     private const RESERVED_VARS = [
         '$GLOBALS' => true,

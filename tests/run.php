@@ -53,8 +53,8 @@ try {
 }
 assertTrue($decodedSource !== '', 'Decoded source should not be empty');
 assertTrue(
-    str_contains($decodedSource, 'Protected by ObfusX (ionCube/SourceGuardian-style)'),
-    'Obfuscated source should include ionCube/SourceGuardian-style notice'
+    str_contains($decodedSource, 'Protected by ObfusX'),
+    'Obfuscated source should include protection notice'
 );
 
 putenv('OBFUSX_MASTER_KEY=' . $masterKey);
