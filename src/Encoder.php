@@ -17,10 +17,30 @@ final class Encoder
             throw new \RuntimeException('Failed to read input file.');
         }
 
+        if (!self::containsPhp($code)) {
+            throw new \RuntimeException(
+                'Input file must contain PHP code; input does not contain any PHP tags (no "<?php" / "<?=" tag found): ' . $inputFile
+            );
+        }
+
         self::assertEncodablePhpSource($code);
 
         $obfuscated = Obfuscator::obfuscate($code);
-        $encrypted = Crypto::encrypt($obfuscated['code'], $masterKey);
+        $source = $obfuscated['code'];
+
+        $compress = self::compressionEnabled();
+        if ($compress) {
+            $compressed = gzencode($source, 9);
+            if ($compressed === false) {
+                throw new \RuntimeException('Failed to compress source.');
+            }
+            $source = $compressed;
+        }
+
+        $encrypted = Crypto::encrypt($source, $masterKey);
+        if ($compress) {
+            $encrypted['compression'] = 'gzip';
+        }
         $encrypted['meta'] = [
             'obfuscated_at' => gmdate('c'),
             'identifier_count' => count($obfuscated['map']),
@@ -37,8 +57,9 @@ final class Encoder
     /**
      * Return non-sensitive metadata describing an encoded file.
      *
-     * The protected source is never decrypted: only the algorithm, signing
-     * status and recorded meta information are exposed.
+     * The protected source is never decrypted: only the algorithm, key-rotation
+     * identifier, compression, signing status and recorded meta information are
+     * exposed.
      *
      * @return array<string,mixed>
      */
@@ -62,9 +83,30 @@ final class Encoder
 
         return [
             'alg' => $payload['alg'] ?? 'unknown',
+            'info' => $payload['info'] ?? Crypto::DEFAULT_KEY_INFO,
+            'compression' => $payload['compression'] ?? 'none',
             'signed' => isset($payload['signature']),
             'meta' => $meta,
         ];
+    }
+
+    /**
+     * Determine whether the given source contains at least one PHP open tag.
+     */
+    private static function containsPhp(string $code): bool
+    {
+        foreach (token_get_all($code) as $token) {
+            if (is_array($token) && ($token[0] === T_OPEN_TAG || $token[0] === T_OPEN_TAG_WITH_ECHO)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static function compressionEnabled(): bool
+    {
+        return getenv('OBFUSX_COMPRESS') === '1' && function_exists('gzencode');
     }
 
     /**
@@ -83,6 +125,8 @@ final class Encoder
             (string) ($payload['iv'] ?? ''),
             (string) ($payload['tag'] ?? ''),
             (string) ($payload['salt'] ?? ''),
+            (string) ($payload['info'] ?? ''),
+            (string) ($payload['compression'] ?? ''),
         ]);
         $payload['signature'] = hash_hmac('sha256', $message, $signingKey);
         $payload['signed'] = true;
@@ -98,33 +142,21 @@ final class Encoder
             throw new \RuntimeException('Input file must contain valid PHP code.', 0, $e);
         }
 
-        $hasOpenTag = false;
-        $hasExecutablePhpToken = false;
-
         foreach ($tokens as $token) {
             if (!is_array($token)) {
                 continue;
             }
 
-            [$id] = $token;
-
-            if ($id === T_OPEN_TAG || $id === T_OPEN_TAG_WITH_ECHO) {
-                $hasOpenTag = true;
-                if ($id === T_OPEN_TAG_WITH_ECHO) {
-                    $hasExecutablePhpToken = true;
-                }
-                continue;
+            $id = $token[0];
+            if ($id === T_OPEN_TAG_WITH_ECHO) {
+                return;
             }
 
-            if (in_array($id, [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT, T_INLINE_HTML, T_CLOSE_TAG], true)) {
-                continue;
+            if (!in_array($id, [T_OPEN_TAG, T_WHITESPACE, T_COMMENT, T_DOC_COMMENT, T_INLINE_HTML, T_CLOSE_TAG], true)) {
+                return;
             }
-
-            $hasExecutablePhpToken = true;
         }
 
-        if (!$hasOpenTag || !$hasExecutablePhpToken) {
-            throw new \RuntimeException('Input file must contain PHP code enclosed in PHP tags.');
-        }
+        throw new \RuntimeException('Input file must contain PHP code enclosed in PHP tags.');
     }
 }

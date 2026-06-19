@@ -19,10 +19,73 @@ function obfusx_s(string $encoded): string
 
 function obfusx_anti_debug(): void
 {
-    $debugAllowed = getenv('OBFUSX_ALLOW_DEBUG') === '1';
-    if (!$debugAllowed && extension_loaded('xdebug')) {
-        throw new RuntimeException('Debugging extension detected.');
+    if (getenv('OBFUSX_ALLOW_DEBUG') === '1') {
+        return;
     }
+
+    foreach (obfusx_anti_debug_checks() as $check) {
+        switch ($check) {
+            case 'xdebug':
+                if (extension_loaded('xdebug')) {
+                    throw new RuntimeException('Debugging extension detected.');
+                }
+                break;
+
+            case 'debugger':
+                if (function_exists('xdebug_is_debugger_active') && xdebug_is_debugger_active()) {
+                    throw new RuntimeException('Active debugger session detected.');
+                }
+                break;
+
+            case 'phpdbg':
+                if (PHP_SAPI === 'phpdbg' || defined('PHPDBG_VERSION')) {
+                    throw new RuntimeException('phpdbg debugger detected.');
+                }
+                break;
+
+            case 'trace':
+                $traceFunctions = ['xdebug_start_trace', 'tideways_xhprof_enable', 'xhprof_enable'];
+                foreach ($traceFunctions as $traceFn) {
+                    if (function_exists($traceFn)) {
+                        throw new RuntimeException('Tracing/profiling extension detected.');
+                    }
+                }
+                break;
+
+            default:
+                // Unknown checks are ignored so configuration stays forward-compatible.
+                break;
+        }
+    }
+}
+
+/**
+ * Resolve the configured anti-debug checks.
+ *
+ * Configure with OBFUSX_ANTIDEBUG_CHECKS as a comma-separated list (for
+ * example "xdebug,phpdbg"). Use "none" (or an empty list) to disable all
+ * checks. Defaults to every available check.
+ *
+ * @return array<int,string>
+ */
+function obfusx_anti_debug_checks(): array
+{
+    $default = ['xdebug', 'debugger', 'phpdbg', 'trace'];
+    $configured = getenv('OBFUSX_ANTIDEBUG_CHECKS');
+    if (!is_string($configured) || trim($configured) === '') {
+        return $default;
+    }
+
+    $checks = array_values(array_filter(array_map(
+        static fn (string $check): string => strtolower(trim($check)),
+        explode(',', $configured)
+    ), static fn (string $check): bool => $check !== ''));
+
+    if ($checks === [] || in_array('none', $checks, true)) {
+        return [];
+    }
+
+    return $checks;
 }
 
 function obfusx_execute_payload(array $payload, ?string $licensePath = null): void
@@ -58,7 +121,31 @@ function obfusx_execute_payload(array $payload, ?string $licensePath = null): vo
     }
 
     $code = Crypto::decrypt($payload, $masterKey);
+    $code = obfusx_decompress($payload, $code);
     obfusx_include_decrypted_code($code);
+}
+
+function obfusx_decompress(array $payload, string $code): string
+{
+    $compression = $payload['compression'] ?? null;
+    if ($compression === null || $compression === '' || $compression === 'none') {
+        return $code;
+    }
+
+    if ($compression !== 'gzip') {
+        throw new RuntimeException('Unsupported payload compression: ' . (string) $compression);
+    }
+
+    if (!function_exists('gzdecode')) {
+        throw new RuntimeException('zlib extension is required to decode compressed payloads.');
+    }
+
+    $decoded = gzdecode($code);
+    if ($decoded === false) {
+        throw new RuntimeException('Failed to decompress payload.');
+    }
+
+    return $decoded;
 }
 
 function obfusx_validate_signature(array $payload): void
@@ -81,6 +168,8 @@ function obfusx_validate_signature(array $payload): void
         (string) ($payload['iv'] ?? ''),
         (string) ($payload['tag'] ?? ''),
         (string) ($payload['salt'] ?? ''),
+        (string) ($payload['info'] ?? ''),
+        (string) ($payload['compression'] ?? ''),
     ]);
     $expected = hash_hmac('sha256', $message, $signingKey);
 
@@ -96,7 +185,8 @@ function obfusx_include_decrypted_code(string $code): void
         throw new RuntimeException('Unable to create temporary runtime file.');
     }
 
-    if (file_put_contents($tmpFile, $code) === false) {
+    $wrapped = obfusx_has_php_tag($code) ? $code : "<?php\n" . $code;
+    if (file_put_contents($tmpFile, $wrapped) === false) {
         @unlink($tmpFile);
         throw new RuntimeException('Unable to write temporary runtime file.');
     }
@@ -106,6 +196,23 @@ function obfusx_include_decrypted_code(string $code): void
     } finally {
         @unlink($tmpFile);
     }
+}
+
+/**
+ * Reliably determine whether the source already opens a PHP block.
+ *
+ * Uses the tokenizer rather than substring matching so a literal "<?" inside a
+ * string or comment is not mistaken for an actual open tag.
+ */
+function obfusx_has_php_tag(string $code): bool
+{
+    foreach (token_get_all($code) as $token) {
+        if (is_array($token) && ($token[0] === T_OPEN_TAG || $token[0] === T_OPEN_TAG_WITH_ECHO)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function obfusx_execute_file(string $encodedFile, ?string $licensePath = null): void

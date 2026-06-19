@@ -31,7 +31,7 @@ final class Obfuscator
         $tokens = token_get_all($code);
         $out = [];
         $map = [];
-        $insidePhp = false;
+        $inPhp = false;
 
         foreach ($tokens as $token) {
             if (!is_array($token)) {
@@ -40,14 +40,20 @@ final class Obfuscator
             }
 
             [$id, $text] = $token;
+
             if ($id === T_OPEN_TAG || $id === T_OPEN_TAG_WITH_ECHO) {
-                $insidePhp = true;
+                $inPhp = true;
                 $out[] = $text;
                 continue;
             }
 
             if ($id === T_CLOSE_TAG) {
-                $insidePhp = false;
+                $inPhp = false;
+                $out[] = $text;
+                continue;
+            }
+
+            if ($id === T_INLINE_HTML) {
                 $out[] = $text;
                 continue;
             }
@@ -74,14 +80,28 @@ final class Obfuscator
             $out[] = $text;
         }
 
-        $dummy = $insidePhp
-            ? "\nif ((strlen(__FILE__) ^ strlen(__FILE__)) !== 0) { echo 'never'; }\n"
-            : "<?php\nif ((strlen(__FILE__) ^ strlen(__FILE__)) !== 0) { echo 'never'; }\n?>";
+        $code = implode('', $out) . self::dummyFlow($inPhp);
 
         return [
-            'code' => implode('', $out) . $dummy,
+            'code' => $code,
             'map' => $map,
         ];
+    }
+
+    /**
+     * Build an opaque, no-op control-flow snippet appended after the source.
+     *
+     * When the source ends inside a PHP block the snippet is emitted as plain
+     * statements; otherwise it is wrapped in its own `<?php ... ?>` block so it
+     * stays valid for inline-HTML / multi-block templates.
+     */
+    private static function dummyFlow(bool $inPhp): string
+    {
+        $statement = "if ((strlen(__FILE__) ^ strlen(__FILE__)) !== 0) { echo 'never'; }";
+
+        return $inPhp
+            ? "\n" . $statement . "\n"
+            : "\n<?php\n" . $statement . "\n";
     }
 
     private static function tokenName(string $prefix, string $seed): string
@@ -103,6 +123,7 @@ final class Obfuscator
             return str_replace(["\\'", "\\\\"], ["'", "\\"], $body);
         }
 
-        return stripcslashes($body);
+        $decoded = stripcslashes($body);
+        return is_string($decoded) ? $decoded : null;
     }
 }
