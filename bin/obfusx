@@ -37,9 +37,31 @@ function usage(): void
 
 function about(): void
 {
-    echo 'ObfusX v' . Version::current() . " — About\n";
-    echo "A PHP source-protection toolkit inspired by ionCube/SourceGuardian workflows.\n";
-    echo "Includes encryption, obfuscation, runtime loading, and license enforcement.\n";
+    $v = Version::current();
+    echo "╔══════════════════════════════════════════════════════╗\n";
+    echo "║         ObfusX v{$v} — PHP Source Protection" . str_repeat(' ', 12 - strlen($v)) . "║\n";
+    echo "║       Inspired by ionCube/SourceGuardian workflows   ║\n";
+    echo "╠══════════════════════════════════════════════════════╣\n";
+    echo "║  PHP req.  : 8.1+                                    ║\n";
+    echo "║  License   : MIT                                     ║\n";
+    echo "║  Project   : https://github.com/i4Edu/ObfusX        ║\n";
+    echo "╠══════════════════════════════════════════════════════╣\n";
+    echo "║  Features                                            ║\n";
+    echo "║  • AES-256-GCM encryption of PHP source payloads    ║\n";
+    echo "║  • Identifier & string-literal obfuscation pipeline ║\n";
+    echo "║  • In-memory decrypt-and-eval runtime loader        ║\n";
+    echo "║  • Domain / IP / hardware-fingerprint license checks║\n";
+    echo "║  • Configurable expiry date enforcement             ║\n";
+    echo "║  • Anti-debug checks (xdebug, phpdbg, trace …)     ║\n";
+    echo "║  • Laravel-compatible __DIR__ / __FILE__ rewriting  ║\n";
+    echo "║  • HKDF key derivation with rotation support        ║\n";
+    echo "║  • Optional gzip compression before encryption      ║\n";
+    echo "║  • Optional HMAC payload tamper detection           ║\n";
+    echo "╠══════════════════════════════════════════════════════╣\n";
+    echo "║  Commands                                            ║\n";
+    echo "║  encode · run · inspect · make-license              ║\n";
+    echo "║  fingerprint · version · about · help               ║\n";
+    echo "╚══════════════════════════════════════════════════════╝\n";
 }
 
 $command = $argv[1] ?? null;

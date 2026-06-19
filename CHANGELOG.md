@@ -9,8 +9,13 @@ ObfusX uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+---
+
+## [0.2.0] — 2026-06-19
+
 ### Added
-- `about` command — print an ionCube/SourceGuardian-style overview of ObfusX capabilities.
+- `about` command — prints an ionCube/SourceGuardian-style overview of ObfusX capabilities,
+  including version, PHP requirement, license, project URL, full feature list, and available commands.
 
 ---
 
@@ -88,5 +93,6 @@ This is the first public release; no migration from a previous version is requir
 | `OBFUSX_ANTIDEBUG_CHECKS` | Comma-separated checks (`xdebug,debugger,phpdbg,trace`) or `none`. |
 | `OBFUSX_ALLOW_DEBUG` | Set to `1` to bypass anti-debug checks (local testing only). |
 
-[Unreleased]: https://github.com/i4Edu/ObfusX/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/i4Edu/ObfusX/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/i4Edu/ObfusX/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/i4Edu/ObfusX/releases/tag/v0.1.0
