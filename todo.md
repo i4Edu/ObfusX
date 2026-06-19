@@ -32,12 +32,12 @@ A prioritized roadmap of improvements for the ObfusX PHP source-protection toolk
 - [x] Add optional payload compression before encryption.
 - [x] Document a threat model in `docs/`.
 
-## Phase 5 — Distribution & packaging
-- [ ] Build a self-contained Phar binary (`obfusx.phar`) for zero-dependency distribution.
-- [ ] Publish a Docker image to GitHub Container Registry.
-- [ ] Add a GitHub Actions release workflow that publishes the Phar and Docker
+## Phase 5 — Distribution & packaging ✅
+- [x] Build a self-contained Phar binary (`obfusx.phar`) for zero-dependency distribution.
+- [x] Publish a Docker image to GitHub Container Registry.
+- [x] Add a GitHub Actions release workflow that publishes the Phar and Docker
       image on tag push.
-- [ ] Verify and document Windows (WSL / native PHP) compatibility.
+- [x] Verify and document Windows (WSL / native PHP) compatibility.
 
 ## Phase 6 — Advanced obfuscation
 - [ ] Control-flow flattening (switch-based dispatcher) for protected code blocks.
