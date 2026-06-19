@@ -102,6 +102,11 @@ LicenseManager::validateFromString($license, [
     'ip' => '127.0.0.1',
     'hardware_fingerprint' => 'abc',
 ], $licenseKey);
+$emptyRevocationList = json_encode([], JSON_THROW_ON_ERROR);
+assertTrue(is_string($emptyRevocationList), 'Empty revocation list JSON should encode');
+$emptyRevocationFile = __DIR__ . '/.runtime/revocations-empty.json';
+writeFile($emptyRevocationFile, $emptyRevocationList);
+assertTrue(!LicenseManager::isRevoked($license, $emptyRevocationFile), 'Empty revocation list should not revoke the license');
 
 $tmpPrefix = 'obfusx_test_' . getmypid() . '_' . str_replace('.', '', uniqid('', true));
 $workspaceRoot = __DIR__ . '/.runtime/' . $tmpPrefix;
@@ -324,6 +329,30 @@ PHP2);
     assertTrue(str_contains($helpOutput, 'about'), 'help output should include about command');
     assertTrue(str_contains($helpOutput, 'encode-dir'), 'help output should include encode-dir');
 
+    $cliLicenseOut = $workspaceRoot . '/cli-license.json';
+    $cliExpires = '2030-01-01T00:00:00Z';
+    $cliLicenseOutput = runCommand(
+        [
+            PHP_BINARY,
+            $cliPath,
+            'make-license',
+            '--out=' . $cliLicenseOut,
+            '--expires=' . $cliExpires,
+            '--licensee=Acme Corp',
+            '--max-machines=5',
+        ],
+        ['OBFUSX_LICENSE_KEY' => $licenseKey]
+    );
+    $cliLicenseData = json_decode((string) file_get_contents($cliLicenseOut), true, 512, JSON_THROW_ON_ERROR);
+    assertTrue(is_array($cliLicenseData), 'make-license output should decode');
+    assertTrue(($cliLicenseData['payload']['licensee'] ?? null) === 'Acme Corp', 'make-license should store the licensee in the payload');
+    assertTrue(($cliLicenseData['payload']['max_machines'] ?? null) === 5, 'make-license should store max_machines in the payload');
+    assertTrue(str_contains($cliLicenseOutput, 'License created: ' . $cliLicenseOut), 'make-license should report the output path');
+    assertTrue(
+        str_contains($cliLicenseOutput, 'Expires: ' . date('D, d M Y H:i:s T', strtotime($cliExpires))),
+        'make-license should print a human-readable expiry timestamp'
+    );
+
     $batchSource = $workspaceRoot . '/batch-src';
     $batchDist = $workspaceRoot . '/batch-dist';
     writeFile($batchSource . '/Foo.php', "<?php echo 'foo';\n");
@@ -437,6 +466,39 @@ PHP2);
     }
     putenv('OBFUSX_ANTIDEBUG_CHECKS');
     putenv('OBFUSX_ALLOW_DEBUG=' . ($savedAllowDebug === false ? '' : $savedAllowDebug));
+
+    // Phase 8: offline grace-period cache permits temporary remote validation failures.
+    $savedLicenseUrl = getenv('OBFUSX_LICENSE_URL');
+    $savedGraceDays = getenv('OBFUSX_LICENSE_GRACE_DAYS');
+    $savedLicenseCache = getenv('OBFUSX_LICENSE_CACHE');
+    $savedLicenseKey = getenv('OBFUSX_LICENSE_KEY');
+    $savedRevocationUrl = getenv('OBFUSX_REVOCATION_URL');
+    $savedAntiDebugChecks = getenv('OBFUSX_ANTIDEBUG_CHECKS');
+    setEnvVar('OBFUSX_ALLOW_DEBUG', null);
+    setEnvVar('OBFUSX_ANTIDEBUG_CHECKS', 'none');
+    setEnvVar('OBFUSX_LICENSE_URL', 'http://127.0.0.1:9/license');
+    setEnvVar('OBFUSX_LICENSE_GRACE_DAYS', '1');
+    setEnvVar('OBFUSX_LICENSE_CACHE', $workspaceRoot . '/license-cache.json');
+    setEnvVar('OBFUSX_LICENSE_KEY', $licenseKey);
+    setEnvVar('OBFUSX_REVOCATION_URL', null);
+    writeFile(
+        $workspaceRoot . '/license-cache.json',
+        json_encode([
+            'last_valid' => time(),
+            'hw' => LicenseManager::hardwareFingerprint(),
+        ], JSON_THROW_ON_ERROR)
+    );
+    ob_start();
+    obfusx_execute_file($tmpOut);
+    $graceOutput = trim((string) ob_get_clean());
+    assertTrue($graceOutput === 'hello', 'Fresh license cache should allow offline grace-period execution');
+    setEnvVar('OBFUSX_LICENSE_URL', $savedLicenseUrl === false ? null : $savedLicenseUrl);
+    setEnvVar('OBFUSX_LICENSE_GRACE_DAYS', $savedGraceDays === false ? null : $savedGraceDays);
+    setEnvVar('OBFUSX_LICENSE_CACHE', $savedLicenseCache === false ? null : $savedLicenseCache);
+    setEnvVar('OBFUSX_LICENSE_KEY', $savedLicenseKey === false ? null : $savedLicenseKey);
+    setEnvVar('OBFUSX_REVOCATION_URL', $savedRevocationUrl === false ? null : $savedRevocationUrl);
+    setEnvVar('OBFUSX_ANTIDEBUG_CHECKS', $savedAntiDebugChecks === false ? null : $savedAntiDebugChecks);
+    setEnvVar('OBFUSX_ALLOW_DEBUG', $savedAllowDebug === false ? null : (string) $savedAllowDebug);
 
     // Phase 6: optional string-array encoding, control-flow flattening, and junk injection.
     $advancedFeatureEnv = [

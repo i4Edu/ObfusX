@@ -30,7 +30,7 @@ function usage(): void
     echo "  encode-dir --in=/path/to/src --out=/path/to/dist [--cache=/path/cache.json]\n";
     echo "  run --file=/path/output.obx [--license=/path/license.json]\n";
     echo "  inspect --file=/path/output.obx\n";
-    echo "  make-license --out=/path/license.json [--domain=example.com] [--ip=1.2.3.4] [--expires=2030-01-01T00:00:00Z] [--hw=<fingerprint>]\n";
+    echo "  make-license --out=/path/license.json [--domain=example.com] [--ip=1.2.3.4] [--expires=2030-01-01T00:00:00Z] [--hw=<fingerprint>] [--licensee=Name] [--max-machines=5]\n";
     echo "  fingerprint\n";
     echo "  about\n";
     echo "  version\n";
@@ -143,6 +143,8 @@ try {
                     'ip' => $args['ip'] ?? null,
                     'expires_at' => $args['expires'] ?? null,
                     'hardware_fingerprint' => $args['hw'] ?? null,
+                    'licensee' => $args['licensee'] ?? null,
+                    'max_machines' => isset($args['max-machines']) ? (int) $args['max-machines'] : null,
                 ],
                 $signingKey
             );
@@ -152,6 +154,12 @@ try {
             }
 
             echo "License created: {$out}\n";
+            if (isset($args['expires']) && is_string($args['expires'])) {
+                $expiresAt = strtotime($args['expires']);
+                if ($expiresAt !== false) {
+                    echo 'Expires: ' . date('D, d M Y H:i:s T', $expiresAt) . "\n";
+                }
+            }
             break;
 
         case 'fingerprint':

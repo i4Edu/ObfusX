@@ -57,10 +57,10 @@ A prioritized roadmap of improvements for the ObfusX PHP source-protection toolk
 - [x] `.obxignore` file support to exclude paths from batch encoding.
 
 ## Phase 8 — Remote licensing
-- [ ] Remote license validation endpoint: loader optionally POSTs a signed
+- [x] Remote license validation endpoint: loader optionally POSTs a signed
       challenge to a configurable URL and verifies the response.
-- [ ] License revocation support: server-side revocation list checked at runtime.
-- [ ] Grace period / offline tolerance window: allow N days of offline use before
+- [x] License revocation support: server-side revocation list checked at runtime.
+- [x] Grace period / offline tolerance window: allow N days of offline use before
       re-validation is required.
-- [ ] `make-license` enhancements: machine-count caps, named licensee field,
+- [x] `make-license` enhancements: machine-count caps, named licensee field,
       and human-readable expiry formatting.

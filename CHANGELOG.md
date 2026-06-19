@@ -11,6 +11,20 @@ ObfusX uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.6.0] — 2026-06-19
+
+### Added
+- Optional remote license validation in `runtime/loader.php` via `OBFUSX_LICENSE_URL`, including signed challenge verification, 5-second timeouts, and debug-bypass support.
+- Offline grace-period caching with `OBFUSX_LICENSE_GRACE_DAYS` and `OBFUSX_LICENSE_CACHE`, allowing recent successful validations to tolerate temporary network failures.
+- `LicenseManager::isRevoked()` and runtime revocation-list checks via `OBFUSX_REVOCATION_URL`.
+- `make-license` support for `licensee` metadata and `max_machines` limits in the signed payload.
+
+### Changed
+- `make-license` now prints a human-readable expiry timestamp when `--expires` is provided.
+- `ObfusX\Version::VERSION` bumped to `0.6.0`.
+
+---
+
 ## [0.5.0] — 2026-06-19
 
 ### Added
@@ -136,7 +150,8 @@ This is the first public release; no migration from a previous version is requir
 | `OBFUSX_ANTIDEBUG_CHECKS` | Comma-separated checks (`xdebug,debugger,phpdbg,trace`) or `none`. |
 | `OBFUSX_ALLOW_DEBUG` | Set to `1` to bypass anti-debug checks (local testing only). |
 
-[Unreleased]: https://github.com/i4Edu/ObfusX/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/i4Edu/ObfusX/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/i4Edu/ObfusX/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/i4Edu/ObfusX/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/i4Edu/ObfusX/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/i4Edu/ObfusX/compare/v0.2.0...v0.3.0
