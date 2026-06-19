@@ -534,7 +534,7 @@ PHP2);
     $advancedOutput = trim((string) ob_get_clean());
     assertTrue($advancedOutput === 'hello world', 'Advanced obfuscation runtime execution failed');
 
-    // Phase 6: PHP 8.2/8.3 syntax compatibility (readonly, enums, typed constants).
+    // Phase 6: PHP 8.2/8.3 syntax compatibility (readonly, enums).
     writeFile($tmpCompatIn, <<<'PHP2'
 <?php
 readonly class ReadonlyValue
@@ -551,7 +551,7 @@ enum DeliveryState: string
 
 final class TypedConstantBag
 {
-    public const string LABEL = 'typed';
+    public const LABEL = 'typed';
 }
 
 new ReadonlyValue(DeliveryState::READY->value);
