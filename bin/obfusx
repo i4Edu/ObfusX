@@ -30,8 +30,16 @@ function usage(): void
     echo "  inspect --file=/path/output.obx\n";
     echo "  make-license --out=/path/license.json [--domain=example.com] [--ip=1.2.3.4] [--expires=2030-01-01T00:00:00Z] [--hw=<fingerprint>]\n";
     echo "  fingerprint\n";
+    echo "  about\n";
     echo "  version\n";
     echo "  help\n";
+}
+
+function about(): void
+{
+    echo 'ObfusX v' . Version::current() . " — About\n";
+    echo "A PHP source-protection toolkit inspired by ionCube/SourceGuardian workflows.\n";
+    echo "Includes encryption, obfuscation, runtime loading, and license enforcement.\n";
 }
 
 $command = $argv[1] ?? null;
@@ -102,6 +110,10 @@ try {
 
         case 'version':
             echo Version::current() . PHP_EOL;
+            break;
+
+        case 'about':
+            about();
             break;
 
         case 'help':

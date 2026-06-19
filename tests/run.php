@@ -213,6 +213,15 @@ assertTrue(ObfusX\Version::current() !== '', 'Version must not be empty');
 assertTrue(is_file(__DIR__ . '/../composer.json'), 'Composer metadata should exist');
 assertTrue(is_file($composerLock), 'Composer lockfile should exist after dependency installation');
 
+$aboutOutput = shell_exec(PHP_BINARY . ' ' . escapeshellarg(__DIR__ . '/../bin/obfusx') . ' about');
+assertTrue(is_string($aboutOutput), 'about command should produce output');
+assertTrue(str_contains($aboutOutput, 'ObfusX v' . ObfusX\Version::current()), 'about command should include version');
+assertTrue(str_contains($aboutOutput, 'ionCube/SourceGuardian'), 'about command should mention ionCube/SourceGuardian style');
+
+$helpOutput = shell_exec(PHP_BINARY . ' ' . escapeshellarg(__DIR__ . '/../bin/obfusx') . ' help');
+assertTrue(is_string($helpOutput), 'help command should produce output');
+assertTrue(str_contains($helpOutput, 'about'), 'help output should include about command');
+
 file_put_contents($tmpMixedIn, <<<'PHP'
 <section>
 <?php

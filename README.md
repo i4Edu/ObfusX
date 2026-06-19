@@ -78,7 +78,8 @@ protected source:
 ./bin/obfusx inspect --file=./examples/plain.obx
 ```
 
-Run `./bin/obfusx help` (or pass `--help`) to see all commands, and
+Run `./bin/obfusx help` (or pass `--help`) to see all commands,
+`./bin/obfusx about` for an ionCube/SourceGuardian-style overview, and
 `./bin/obfusx version` to print the toolkit version.
 
 ## Source compatibility
