@@ -7,6 +7,11 @@ require_once __DIR__ . '/../src/bootstrap.php';
 use ObfusX\Crypto;
 use ObfusX\LicenseManager;
 
+function obfusx_debug_bypass_enabled(): bool
+{
+    return getenv('OBFUSX_ALLOW_DEBUG') === '1';
+}
+
 function obfusx_s(string $encoded): string
 {
     $decoded = base64_decode($encoded, true);
@@ -19,7 +24,7 @@ function obfusx_s(string $encoded): string
 
 function obfusx_anti_debug(): void
 {
-    if (getenv('OBFUSX_ALLOW_DEBUG') === '1') {
+    if (obfusx_debug_bypass_enabled()) {
         return;
     }
 
@@ -91,7 +96,19 @@ function obfusx_anti_debug_checks(): array
 function obfusx_execute_payload(array $payload, ?string $licensePath = null, ?string $encodedFile = null): void
 {
     obfusx_anti_debug();
+
+    unset($payload['branding']);
+
     obfusx_validate_signature($payload);
+
+    $masterKey = getenv('OBFUSX_MASTER_KEY') ?: '';
+    if ($masterKey === '') {
+        throw new RuntimeException('OBFUSX_MASTER_KEY is required at runtime.');
+    }
+
+    $hardwareFingerprint = LicenseManager::hardwareFingerprint();
+    $domain = (string) ($_SERVER['SERVER_NAME'] ?? '');
+    $licenseJson = null;
 
     if ($licensePath !== null) {
         $licenseSigningKey = getenv('OBFUSX_LICENSE_KEY') ?: '';
@@ -107,23 +124,149 @@ function obfusx_execute_payload(array $payload, ?string $licensePath = null, ?st
         LicenseManager::validateFromString(
             $licenseJson,
             [
-                'domain' => $_SERVER['SERVER_NAME'] ?? null,
+                'domain' => $domain,
                 'ip' => $_SERVER['SERVER_ADDR'] ?? null,
-                'hardware_fingerprint' => LicenseManager::hardwareFingerprint(),
+                'hardware_fingerprint' => $hardwareFingerprint,
             ],
             $licenseSigningKey
         );
+
+        if (!obfusx_debug_bypass_enabled()) {
+            $revocationListUrl = getenv('OBFUSX_REVOCATION_URL');
+            if (is_string($revocationListUrl) && trim($revocationListUrl) !== '' && LicenseManager::isRevoked($licenseJson, $revocationListUrl)) {
+                throw new RuntimeException('License has been revoked.');
+            }
+        }
     }
 
-    $masterKey = getenv('OBFUSX_MASTER_KEY') ?: '';
-    if ($masterKey === '') {
-        throw new RuntimeException('OBFUSX_MASTER_KEY is required at runtime.');
-    }
+    obfusx_validate_remote_license($masterKey, $hardwareFingerprint, $domain);
 
     $code = Crypto::decrypt($payload, $masterKey);
     $code = obfusx_decompress($payload, $code);
     $code = obfusx_bind_magic_paths($code, $encodedFile);
     obfusx_include_decrypted_code($code);
+}
+
+function obfusx_validate_remote_license(string $masterKey, string $hardwareFingerprint, string $domain): void
+{
+    if (obfusx_debug_bypass_enabled()) {
+        return;
+    }
+
+    $licenseUrl = getenv('OBFUSX_LICENSE_URL');
+    if (!is_string($licenseUrl) || trim($licenseUrl) === '') {
+        return;
+    }
+
+    $challenge = hash('sha256', $masterKey . time());
+    $requestBody = json_encode([
+        'challenge' => $challenge,
+        'hw' => $hardwareFingerprint,
+        'domain' => $domain,
+    ], JSON_THROW_ON_ERROR);
+    $context = stream_context_create([
+        'http' => [
+            'method' => 'POST',
+            'header' => "Content-Type: application/json\r\nAccept: application/json\r\n",
+            'content' => $requestBody,
+            'timeout' => 5,
+            'ignore_errors' => true,
+        ],
+    ]);
+    $response = @file_get_contents($licenseUrl, false, $context);
+    if ($response === false) {
+        if (obfusx_apply_license_grace_period($hardwareFingerprint)) {
+            return;
+        }
+
+        throw new RuntimeException('Remote license validation failed.');
+    }
+
+    try {
+        $decoded = json_decode($response, true, 512, JSON_THROW_ON_ERROR);
+        if (!is_array($decoded) || ($decoded['valid'] ?? null) !== true || !isset($decoded['signature']) || !is_string($decoded['signature'])) {
+            throw new RuntimeException('Remote license validation failed.');
+        }
+
+        $licenseKey = getenv('OBFUSX_LICENSE_KEY');
+        if (!is_string($licenseKey) || $licenseKey === '') {
+            throw new RuntimeException('Remote license validation failed.');
+        }
+
+        $expectedSignature = hash_hmac('sha256', $challenge, $licenseKey);
+        if (!hash_equals($expectedSignature, $decoded['signature'])) {
+            throw new RuntimeException('Remote license validation failed.');
+        }
+    } catch (Throwable $e) {
+        if ($e instanceof RuntimeException && $e->getMessage() === 'Remote license validation failed.') {
+            throw $e;
+        }
+
+        throw new RuntimeException('Remote license validation failed.', 0, $e);
+    }
+
+    obfusx_write_license_cache($hardwareFingerprint);
+}
+
+function obfusx_apply_license_grace_period(string $hardwareFingerprint): bool
+{
+    $graceDays = getenv('OBFUSX_LICENSE_GRACE_DAYS');
+    $days = is_string($graceDays) && trim($graceDays) !== '' ? max(0, (int) $graceDays) : 0;
+    if ($days <= 0) {
+        return false;
+    }
+
+    $cachePath = getenv('OBFUSX_LICENSE_CACHE');
+    $cacheFile = is_string($cachePath) && trim($cachePath) !== ''
+        ? $cachePath
+        : sys_get_temp_dir() . '/obfusx_license_cache.json';
+    $cacheJson = @file_get_contents($cacheFile);
+    if ($cacheJson === false) {
+        return false;
+    }
+
+    try {
+        $cache = json_decode($cacheJson, true, 512, JSON_THROW_ON_ERROR);
+    } catch (Throwable) {
+        return false;
+    }
+
+    if (!is_array($cache) || ($cache['hw'] ?? null) !== $hardwareFingerprint) {
+        return false;
+    }
+
+    $lastValid = $cache['last_valid'] ?? null;
+    if (!is_int($lastValid)) {
+        return false;
+    }
+
+    $expiresAt = $lastValid + ($days * 86400);
+    $now = time();
+    if ($expiresAt <= $now) {
+        return false;
+    }
+
+    $remainingDays = (int) ceil(($expiresAt - $now) / 86400);
+    fwrite(STDERR, 'ObfusX: running in offline grace period (' . $remainingDays . " days remaining).\n");
+
+    return true;
+}
+
+function obfusx_write_license_cache(string $hardwareFingerprint): void
+{
+    $cachePath = getenv('OBFUSX_LICENSE_CACHE');
+    $cacheFile = is_string($cachePath) && trim($cachePath) !== ''
+        ? $cachePath
+        : sys_get_temp_dir() . '/obfusx_license_cache.json';
+    $cacheDir = dirname($cacheFile);
+    if (!is_dir($cacheDir)) {
+        @mkdir($cacheDir, 0777, true);
+    }
+
+    @file_put_contents($cacheFile, json_encode([
+        'last_valid' => time(),
+        'hw' => $hardwareFingerprint,
+    ], JSON_THROW_ON_ERROR));
 }
 
 function obfusx_decompress(array $payload, string $code): string

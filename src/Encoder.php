@@ -27,6 +27,19 @@ final class Encoder
 
         $obfuscated = Obfuscator::obfuscate($code);
         $source = $obfuscated['code'];
+        $meta = [
+            'obfuscated_at' => gmdate('c'),
+            'identifier_count' => count($obfuscated['map']),
+        ];
+        if (($obfuscated['features']['strarray'] ?? false) === true) {
+            $meta['strarray'] = true;
+        }
+
+        $flattenedSource = Obfuscator::flattenControlFlow($source);
+        if ($flattenedSource !== $source) {
+            $source = $flattenedSource;
+            $meta['flatten'] = true;
+        }
 
         $compress = self::compressionEnabled();
         if ($compress) {
@@ -41,11 +54,13 @@ final class Encoder
         if ($compress) {
             $encrypted['compression'] = 'gzip';
         }
-        $encrypted['meta'] = [
-            'obfuscated_at' => gmdate('c'),
-            'identifier_count' => count($obfuscated['map']),
-        ];
+        $encrypted['meta'] = $meta;
         $encrypted = self::addSignature($encrypted);
+
+        $branding = getenv('OBFUSX_BRANDING') ?: '';
+        if ($branding !== '') {
+            $encrypted['branding'] = $branding;
+        }
 
         $json = json_encode($encrypted, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR);
 
@@ -86,6 +101,7 @@ final class Encoder
             'info' => $payload['info'] ?? Crypto::DEFAULT_KEY_INFO,
             'compression' => $payload['compression'] ?? 'none',
             'signed' => isset($payload['signature']),
+            'branding' => isset($payload['branding']) && is_string($payload['branding']) ? $payload['branding'] : '',
             'meta' => $meta,
         ];
     }
