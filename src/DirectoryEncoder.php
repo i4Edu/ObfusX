@@ -175,20 +175,32 @@ final class DirectoryEncoder
                 }
             }
 
-            if (fnmatch($normalizedPattern, $normalizedPath)) {
+            if (self::fnmatch($normalizedPattern, $normalizedPath)) {
                 return true;
             }
 
-            if (!str_contains($normalizedPattern, '/') && fnmatch($normalizedPattern, $basename)) {
+            if (!str_contains($normalizedPattern, '/') && self::fnmatch($normalizedPattern, $basename)) {
                 return true;
             }
 
-            if ($isDir && fnmatch(rtrim($normalizedPattern, '/') . '/*', $normalizedPath . '/child')) {
+            if ($isDir && self::fnmatch(rtrim($normalizedPattern, '/') . '/*', $normalizedPath . '/child')) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    private static function fnmatch(string $pattern, string $string): bool
+    {
+        if (function_exists('fnmatch')) {
+            return fnmatch($pattern, $string);
+        }
+        $regex = '#^' . strtr(preg_quote($pattern, '#'), [
+            '\\*' => '[^/]*',
+            '\\?' => '[^/]',
+        ]) . '$#';
+        return (bool) preg_match($regex, $string);
     }
 
     private static function isPhpFile(string $pathname): bool

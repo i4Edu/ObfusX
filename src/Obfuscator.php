@@ -104,6 +104,16 @@ final class Obfuscator
                     continue;
                 }
 
+                if ($token === '[') {
+                    if ($attributeDepth > 0) {
+                        $attributeDepth++;
+                    }
+                    $out[] = '[';
+                    $previousSignificantId = null;
+                    $previousSignificantText = '[';
+                    continue;
+                }
+
                 if ($token === ']') {
                     if ($attributeDepth > 0) {
                         $attributeDepth--;
