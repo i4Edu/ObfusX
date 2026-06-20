@@ -19,6 +19,9 @@ jobs:
   release:
     name: Publish GitHub Release
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
 
     steps:
       - name: Checkout
@@ -105,5 +108,5 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/i4edu/obfusx:${{ steps.version.outputs.tag }}
+            ghcr.io/i4edu/obfusx:${{ needs.release.outputs.tag }}
             ghcr.io/i4edu/obfusx:latest
