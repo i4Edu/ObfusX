@@ -41,10 +41,15 @@ jobs:
       - name: Resolve release tag and version
         id: version
         run: |
+          SEMVER_PATTERN='^v?[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z]+(-[0-9A-Za-z]+)*(\.[0-9A-Za-z]+(-[0-9A-Za-z]+)*)*)?$'
           if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
             TAG="${{ inputs.tag }}"
           else
             TAG="${GITHUB_REF_NAME}"
+          fi
+          if ! printf '%s' "$TAG" | grep -Eq "$SEMVER_PATTERN"; then
+            echo "Invalid release tag '${TAG}'. Use semantic version format like v0.6.0 or v0.6.0-beta.1." >&2
+            exit 1
           fi
           if [ "${TAG#v}" = "${TAG}" ]; then
             TAG="v${TAG}"
