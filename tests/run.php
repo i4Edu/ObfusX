@@ -534,8 +534,10 @@ PHP2);
     $advancedOutput = trim((string) ob_get_clean());
     assertTrue($advancedOutput === 'hello world', 'Advanced obfuscation runtime execution failed');
 
-    // Phase 6: PHP 8.2/8.3 syntax compatibility (readonly, enums).
-    writeFile($tmpCompatIn, <<<'PHP2'
+    // Phase 6: PHP 8.2/8.3 syntax compatibility (readonly class, enums).
+    // readonly class was introduced in PHP 8.2; skip on earlier runtimes.
+    if (PHP_VERSION_ID >= 80200) {
+        writeFile($tmpCompatIn, <<<'PHP2'
 <?php
 readonly class ReadonlyValue
 {
@@ -557,11 +559,12 @@ final class TypedConstantBag
 new ReadonlyValue(DeliveryState::READY->value);
 echo DeliveryState::READY->value . '|' . TypedConstantBag::LABEL;
 PHP2);
-    Encoder::encodeFile($tmpCompatIn, $tmpCompatOut, $masterKey);
-    ob_start();
-    obfusx_execute_file($tmpCompatOut);
-    $compatOutput = trim((string) ob_get_clean());
-    assertTrue($compatOutput === 'ready|typed', 'PHP 8.2/8.3 compatibility execution failed: ' . $compatOutput);
+        Encoder::encodeFile($tmpCompatIn, $tmpCompatOut, $masterKey);
+        ob_start();
+        obfusx_execute_file($tmpCompatOut);
+        $compatOutput = trim((string) ob_get_clean());
+        assertTrue($compatOutput === 'ready|typed', 'PHP 8.2/8.3 compatibility execution failed: ' . $compatOutput);
+    }
 } finally {
     removeTree($workspaceRoot);
     removeTree(__DIR__ . '/.runtime');
