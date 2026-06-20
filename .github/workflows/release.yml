@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (example: v0.6.0)'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -32,9 +38,24 @@ jobs:
       - name: Run test suite
         run: composer test
 
-      - name: Extract version from tag
+      - name: Resolve release tag and version
         id: version
-        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+        run: |
+          SEMVER_PATTERN='^v?[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z]+(-[0-9A-Za-z]+)*(\.[0-9A-Za-z]+(-[0-9A-Za-z]+)*)*)?$'
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          if ! printf '%s' "$TAG" | grep -Eq "$SEMVER_PATTERN"; then
+            echo "Invalid release tag '${TAG}'. Use semantic version format like v0.6.0 or v0.6.0-beta.1." >&2
+            exit 1
+          fi
+          if [ "${TAG#v}" = "${TAG}" ]; then
+            TAG="v${TAG}"
+          fi
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
 
       - name: Extract changelog for this release
         id: changelog
@@ -53,7 +74,8 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: ObfusX ${{ github.ref_name }}
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ObfusX ${{ steps.version.outputs.tag }}
           body: ${{ steps.changelog.outputs.notes }}
           files: obfusx.phar
           fail_on_unmatched_files: true
@@ -83,5 +105,5 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/i4edu/obfusx:${{ github.ref_name }}
+            ghcr.io/i4edu/obfusx:${{ steps.version.outputs.tag }}
             ghcr.io/i4edu/obfusx:latest
